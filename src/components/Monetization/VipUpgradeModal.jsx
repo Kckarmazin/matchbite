@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import {
   Crown,
@@ -21,6 +21,20 @@ export function VipUpgradeModal({ isOpen, onClose }) {
   const [appliedCoupon, setAppliedCoupon] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -127,6 +141,9 @@ export function VipUpgradeModal({ isOpen, onClose }) {
     >
       <div
         className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="vip-modal-title"
         style={{
           background: 'var(--surface-card, #FFFFFF)',
           borderRadius: 'var(--radius-lg, 20px)',
@@ -143,14 +160,22 @@ export function VipUpgradeModal({ isOpen, onClose }) {
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close VIP modal"
           style={{
             position: 'absolute',
-            top: '16px',
-            right: '16px',
+            top: '12px',
+            right: '12px',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             color: 'var(--text-muted)',
+            padding: '8px',
+            minWidth: '40px',
+            minHeight: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--radius-full)',
           }}
         >
           <X size={20} />
@@ -173,7 +198,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
           >
             <Crown size={28} />
           </div>
-          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0 }}>
+          <h2 id="vip-modal-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0 }}>
             MatchBite VIP Pass
           </h2>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -254,7 +279,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
               placeholder="Coupon (e.g. VIPFREE)"
               value={coupon}
               onChange={(e) => setCoupon(e.target.value)}
-              style={{ paddingLeft: '32px', fontSize: '0.88rem' }}
+              style={{ paddingLeft: '32px', fontSize: '16px' }}
             />
           </div>
           <button
@@ -298,7 +323,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
                   placeholder="Cardholder Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  style={{ fontSize: '0.88rem' }}
+                  style={{ fontSize: '16px' }}
                 />
               </div>
 
@@ -311,7 +336,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
                   maxLength={19}
-                  style={{ paddingLeft: '32px', fontSize: '0.88rem' }}
+                  style={{ paddingLeft: '32px', fontSize: '16px' }}
                 />
               </div>
 
@@ -323,7 +348,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
                   value={expiry}
                   onChange={(e) => setExpiry(e.target.value)}
                   maxLength={5}
-                  style={{ fontSize: '0.88rem' }}
+                  style={{ fontSize: '16px' }}
                 />
                 <input
                   type="text"
@@ -332,7 +357,7 @@ export function VipUpgradeModal({ isOpen, onClose }) {
                   value={cvv}
                   onChange={(e) => setCvv(e.target.value)}
                   maxLength={4}
-                  style={{ fontSize: '0.88rem' }}
+                  style={{ fontSize: '16px' }}
                 />
               </div>
             </>

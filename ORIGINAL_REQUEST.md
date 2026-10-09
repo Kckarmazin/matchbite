@@ -147,3 +147,45 @@ Integrity mode: development
 ### Stability & Verification
 - [ ] `npm test` passes 100% across all test suites without regressions.
 - [ ] `npm run build` compiles cleanly with zero errors.
+
+## 2026-10-09T18:39:27Z
+
+Conduct a comprehensive product review, UX audit, and social dynamics ideation sprint for MatchBite (group indecision swiping web app) to deliver critical feedback, architectural assessments, and a prioritized improvement roadmap.
+
+Working directory: C:\Users\kck50\teamwork_projects\niche_web_app
+Integrity mode: development
+
+## Requirements
+
+### R1. 360-Degree Product & UX Experience Audit
+Critique the end-to-end user journey across all current MatchBite surfaces: Room Creation, Lobby & Roster, Card-Swiping gesture flow, Consensus Reveal, Decision Roulette, and Affiliate/VIP monetization. Identify friction points, mobile ergonomics, micro-interaction polish, and accessibility enhancements while preserving the zero-login, instant-join ethos.
+
+### R2. Social & Group Dynamics Feature Concepts
+Design rich, engaging social mechanisms tailored for friend groups, couples, and coworkers:
+- Real-time floating participant emoji reactions during swiping (e.g., party members sending cheers, fire, drool, or veto reactions that animate across active screens).
+- Live voting momentum & collective progress indicators without spoiling private choices.
+- Lightweight lobby banter / party chat or prompt icebreakers.
+- High-viral post-match sharable summary cards (custom image/text export for WhatsApp, iMessage, Instagram Stories showcasing group agreement score, top runner-ups, and chosen spot).
+
+### R3. Technical Architecture & Real-Time Scalability Review
+Analyze the underlying system architecture for supporting heightened social interactions:
+- Evaluate Server-Sent Events (SSE) broadcasting efficiency and payload schemas for ephemeral events (reactions, presence).
+- Review state management resilience, reconnection behavior, and offline/weak-connectivity handling.
+- Assess migration path from in-memory `RoomStore` to persistent storage (e.g. SQLite/Redis/PostgreSQL) without compromising sub-second latency.
+
+### R4. Prioritized Actionable Improvement Roadmap
+Synthesize findings into an actionable improvement roadmap:
+- Categorize proposals into Quick Wins (< 1 day), High-Impact Milestones (1–2 weeks), and Strategic Differentiators (Moonshots).
+- Provide concrete UI interaction flows, component mockups, and client-server interface schemas for top proposals.
+- Include an Effort vs. Impact matrix ranking all recommendations.
+
+## Acceptance Criteria
+
+### Deliverable Structure & Completeness
+- [ ] A comprehensive evaluation and roadmap report is saved to `C:\Users\kck50\teamwork_projects\niche_web_app\IMPROVEMENTS_AND_IDEAS.md`.
+- [ ] The report details specific critiques for all 6 core surfaces (Creation, Lobby, Swipe Deck, Match Screen, Roulette Wheel, Monetization).
+- [ ] Detailed interaction blueprints are provided for floating reactions, voting momentum cues, lobby chat/icebreakers, and sharable summary cards.
+- [ ] Technical review provides concrete SSE event payload definitions and architecture recommendations for real-time social features.
+- [ ] The roadmap includes at least 8 distinct, ranked proposals evaluated across Effort, Impact, and UX Virality.
+- [ ] All proposals strictly preserve MatchBite's zero-friction, anonymous 1-tap join model.
+- [ ] Existing codebase and test suite (`npm test`) remain intact and functional.

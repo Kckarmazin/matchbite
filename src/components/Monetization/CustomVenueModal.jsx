@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import { PlusCircle, MapPin, X, Utensils } from 'lucide-react';
 
@@ -12,6 +12,20 @@ export function CustomVenueModal({ isOpen, onClose }) {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -59,6 +73,9 @@ export function CustomVenueModal({ isOpen, onClose }) {
     >
       <div
         className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="custom-venue-modal-title"
         style={{
           background: 'var(--surface-card, #FFFFFF)',
           borderRadius: 'var(--radius-lg, 20px)',
@@ -71,14 +88,22 @@ export function CustomVenueModal({ isOpen, onClose }) {
         <button
           type="button"
           onClick={onClose}
+          aria-label="Close dialog"
           style={{
             position: 'absolute',
-            top: '16px',
-            right: '16px',
+            top: '12px',
+            right: '12px',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             color: 'var(--text-muted)',
+            padding: '8px',
+            minWidth: '40px',
+            minHeight: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 'var(--radius-full)',
           }}
         >
           <X size={20} />
@@ -100,7 +125,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
           >
             <Utensils size={24} />
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
+          <h2 id="custom-venue-modal-title" style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
             Add Secret Spot
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -120,6 +145,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -134,6 +160,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
                 placeholder="e.g. Italian Pizza"
                 value={cuisine}
                 onChange={(e) => setCuisine(e.target.value)}
+                style={{ fontSize: '16px' }}
               />
             </div>
             <div>
@@ -144,6 +171,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
                 className="form-input"
                 value={priceTier}
                 onChange={(e) => setPriceTier(e.target.value)}
+                style={{ fontSize: '16px' }}
               >
                 <option value={1}>$ - Budget</option>
                 <option value={2}>$$ - Moderate</option>
@@ -163,6 +191,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
               placeholder="e.g. North End, Main St"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -176,6 +205,7 @@ export function CustomVenueModal({ isOpen, onClose }) {
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              style={{ fontSize: '16px' }}
             />
           </div>
 

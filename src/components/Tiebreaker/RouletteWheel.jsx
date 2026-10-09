@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import * as api from '../../utils/api.js';
+import confetti from 'canvas-confetti';
 import { Sparkles, Trophy, RotateCcw, ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 
 const WEDGE_COLORS = [
@@ -28,14 +29,25 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
   const [candidates, setCandidates] = useState([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winner, setWinner] = useState(null);
+  const [winningIndex, setWinningIndex] = useState(-1);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const currentAngleRef = useRef(0);
   const animFrameIdRef = useRef(null);
   const lastTickWedgeRef = useRef(-1);
   const audioCtxRef = useRef(null);
+  const winnerTimeoutRef = useRef(null);
+  const winningIndexRef = useRef(-1);
 
   const isHost = Boolean(participant?.isHost);
+
+  // Clean up animation frame and timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      if (winnerTimeoutRef.current) clearTimeout(winnerTimeoutRef.current);
+    };
+  }, []);
 
   // Play synthetic Web Audio API click/tick sound
   const playTick = useCallback(() => {
@@ -95,8 +107,8 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
     };
   }, [room?.code, room?.deck]);
 
-  // Canvas drawing routine
-  const drawWheel = useCallback((angle) => {
+  // Canvas drawing routine with dynamic coordinate scaling and winning wedge highlight
+  const drawWheel = useCallback((angle, highlightIdx = -1) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -106,9 +118,9 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
     const width = canvas.clientWidth || 320;
     const height = canvas.clientHeight || 320;
 
-    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
+    if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
     }
 
     ctx.save();
@@ -117,7 +129,7 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
 
     const centerX = width / 2;
     const centerY = height / 2;
-    const radius = Math.min(centerX, centerY) - 18;
+    const radius = Math.max(20, Math.min(centerX, centerY) - 16);
 
     const numWedges = Math.max(1, candidates.length);
     const wedgeAngle = (2 * Math.PI) / numWedges;
@@ -128,6 +140,7 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
       const endAngle = startAngle + wedgeAngle;
       const venue = candidates[i] || { name: `Option ${i + 1}` };
       const color = WEDGE_COLORS[i % WEDGE_COLORS.length];
+      const isWinnerWedge = highlightIdx >= 0 && i === highlightIdx;
 
       // Wedge background
       ctx.beginPath();
@@ -137,10 +150,24 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
       ctx.fillStyle = color;
       ctx.fill();
 
-      // Wedge border
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.stroke();
+      // Wedge border & winning wedge highlight
+      if (isWinnerWedge) {
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#FBBF24'; // Vivid gold highlight
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius - 3, startAngle, endAngle);
+        ctx.closePath();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+      } else {
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+      }
 
       // Text label inside wedge
       ctx.save();
@@ -148,7 +175,8 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
       ctx.rotate(startAngle + wedgeAngle / 2);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+      const labelFontSize = Math.max(10, Math.min(13, Math.round(radius * 0.088)));
+      ctx.font = `bold ${labelFontSize}px "Plus Jakarta Sans", sans-serif`;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
       ctx.shadowBlur = 4;
 
@@ -158,29 +186,31 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
         label = label.slice(0, maxLabelLen - 1) + '…';
       }
 
-      ctx.fillText(label, radius - 20, 4);
+      ctx.fillText(label, radius - 18, 4);
       ctx.restore();
     }
 
-    // Outer wheel rim shadow
+    // Outer wheel rim
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.lineWidth = highlightIdx >= 0 ? 7 : 6;
+    ctx.strokeStyle = highlightIdx >= 0 ? '#F59E0B' : 'rgba(15, 23, 42, 0.8)';
     ctx.stroke();
 
     // Center Hub
+    const hubRadius = Math.max(18, Math.round(radius * 0.17));
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 24, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, hubRadius, 0, 2 * Math.PI);
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'var(--text-main, #0F172A)';
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = highlightIdx >= 0 ? '#F59E0B' : 'var(--text-main, #0F172A)';
     ctx.stroke();
 
     // Center icon
     ctx.fillStyle = 'var(--primary, #FF5A5F)';
-    ctx.font = '16px sans-serif';
+    const iconFontSize = Math.max(13, Math.round(hubRadius * 0.7));
+    ctx.font = `${iconFontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🍽️', centerX, centerY);
@@ -189,11 +219,11 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
     ctx.save();
     ctx.translate(centerX, centerY - radius);
     ctx.beginPath();
-    ctx.moveTo(-12, -14);
-    ctx.lineTo(12, -14);
+    ctx.moveTo(-11, -13);
+    ctx.lineTo(11, -13);
     ctx.lineTo(0, 8);
     ctx.closePath();
-    ctx.fillStyle = '#0F172A';
+    ctx.fillStyle = highlightIdx >= 0 ? '#F59E0B' : '#0F172A';
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#FFFFFF';
@@ -203,9 +233,14 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
     ctx.restore();
   }, [candidates]);
 
-  // Initial draw and redraw when candidates change
+  // Initial draw and redraw on resize or candidate change
   useEffect(() => {
-    drawWheel(currentAngleRef.current);
+    drawWheel(currentAngleRef.current, winningIndexRef.current);
+    const handleResize = () => {
+      drawWheel(currentAngleRef.current, winningIndexRef.current);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [drawWheel]);
 
   // Spin animation function
@@ -214,6 +249,8 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
     const deltaAngle = targetAngleRad;
     const startTime = performance.now();
     lastTickWedgeRef.current = -1;
+    winningIndexRef.current = -1;
+    setWinningIndex(-1);
 
     const numWedges = Math.max(1, candidates.length);
     const wedgeAngle = (2 * Math.PI) / numWedges;
@@ -235,7 +272,7 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
         playTick();
       }
 
-      drawWheel(angle);
+      drawWheel(angle, -1);
 
       if (progress < 1) {
         animFrameIdRef.current = requestAnimationFrame(tick);
@@ -265,17 +302,45 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
       animateSpin(targetRad, spin.durationMs || 3800, () => {
         const winningVenue = spin.winningVenue || candidates[winningIdx];
         setWinner(winningVenue);
-        if (onWinnerRevealed) {
-          onWinnerRevealed(winningVenue);
+        setWinningIndex(winningIdx);
+        winningIndexRef.current = winningIdx;
+
+        // Immediately highlight the landed winning wedge
+        drawWheel(currentAngleRef.current, winningIdx);
+
+        // Fire mini-celebration confetti burst over the winning slice
+        try {
+          confetti({
+            particleCount: 55,
+            spread: 65,
+            origin: { y: 0.45 },
+            colors: ['#FF5A5F', '#F59E0B', '#10B981', '#8B5CF6'],
+            zIndex: 10000,
+            disableForReducedMotion: true,
+          });
+        } catch {
+          // Graceful fallback in environments without canvas-confetti
         }
+
+        // 1.8s celebration pause before transitioning to match reveal screen
+        if (winnerTimeoutRef.current) clearTimeout(winnerTimeoutRef.current);
+        winnerTimeoutRef.current = setTimeout(() => {
+          if (onWinnerRevealed) {
+            onWinnerRevealed(winningVenue);
+          }
+        }, 1800);
       });
     }
-  }, [activeTiebreakerSpin, candidates, animateSpin, onWinnerRevealed]);
+  }, [activeTiebreakerSpin, candidates, animateSpin, onWinnerRevealed, drawWheel]);
 
   // Trigger Host Spin
   const handleHostSpin = async () => {
     if (!isHost || isSpinning) return;
     try {
+      if (winnerTimeoutRef.current) clearTimeout(winnerTimeoutRef.current);
+      setWinner(null);
+      setWinningIndex(-1);
+      winningIndexRef.current = -1;
       setIsSpinning(true);
       const candidateIds = candidates.map((c) => c.id);
       const res = await spinTiebreaker({
@@ -313,8 +378,10 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
         className="wheel-canvas-wrap"
         style={{
           position: 'relative',
-          width: '320px',
-          height: '320px',
+          width: 'min(320px, 85vw)',
+          height: 'min(320px, 85vw)',
+          maxWidth: '320px',
+          maxHeight: '320px',
           margin: '0 auto 20px',
           display: 'flex',
           alignItems: 'center',
@@ -323,9 +390,13 @@ export function RouletteWheel({ onBackToLeaderboard, onWinnerRevealed }) {
       >
         <canvas
           ref={canvasRef}
+          role="img"
+          aria-label={winner ? `Decision Roulette Wheel. Winning venue: ${winner.name}` : `Decision Roulette Wheel with ${candidates.length} options`}
           style={{
-            width: '320px',
-            height: '320px',
+            width: '100%',
+            height: '100%',
+            maxWidth: '320px',
+            maxHeight: '320px',
             display: 'block',
           }}
         />

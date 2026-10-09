@@ -169,26 +169,30 @@ export function RoomLobby({ onStartSwiping }) {
                 </div>
 
                 {isHost && !isSelf && !isTargetHost && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexWrap: 'wrap' }}>
                     <button
                       type="button"
                       onClick={() => nudgeParticipant(p.id)}
                       title={`Nudge ${p.name}`}
+                      aria-label={`Nudge ${p.name}`}
                       style={{
                         background: 'rgba(245, 158, 11, 0.12)',
                         border: '1px solid rgba(245, 158, 11, 0.35)',
                         borderRadius: '999px',
-                        padding: '2px 7px',
+                        padding: '6px 12px',
+                        minHeight: '38px',
+                        minWidth: '38px',
                         cursor: 'pointer',
                         color: '#D97706',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '0.72rem',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        fontSize: '0.8rem',
                         fontWeight: 700,
                       }}
                     >
-                      <Bell size={11} />
+                      <Bell size={13} />
                       <span>Nudge</span>
                     </button>
                     <button
@@ -199,21 +203,25 @@ export function RoomLobby({ onStartSwiping }) {
                         }
                       }}
                       title={`Remove ${p.name}`}
+                      aria-label={`Remove ${p.name}`}
                       style={{
                         background: 'rgba(239, 68, 68, 0.1)',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
                         borderRadius: '999px',
-                        padding: '2px 7px',
+                        padding: '6px 12px',
+                        minHeight: '38px',
+                        minWidth: '38px',
                         cursor: 'pointer',
                         color: '#DC2626',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '3px',
-                        fontSize: '0.72rem',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        fontSize: '0.8rem',
                         fontWeight: 700,
                       }}
                     >
-                      <UserX size={11} />
+                      <UserX size={13} />
                       <span>Remove</span>
                     </button>
                   </div>
@@ -274,6 +282,7 @@ export function RoomLobby({ onStartSwiping }) {
                     className={`chip-btn ${editDeckSize === opt.id ? 'active' : ''}`}
                     style={{ padding: '6px 8px', fontSize: '0.8rem', textAlign: 'center' }}
                     onClick={() => setEditDeckSize(opt.id)}
+                    aria-pressed={editDeckSize === opt.id}
                   >
                     <span>{opt.label}</span>
                   </button>
@@ -298,6 +307,7 @@ export function RoomLobby({ onStartSwiping }) {
                     className={`chip-btn ${editDistance === dist.id ? 'active' : ''}`}
                     style={{ flex: 1, padding: '6px 4px', fontSize: '0.75rem' }}
                     onClick={() => setEditDistance(dist.id)}
+                    aria-pressed={editDistance === dist.id}
                   >
                     <span>{dist.label}</span>
                   </button>
@@ -331,6 +341,7 @@ export function RoomLobby({ onStartSwiping }) {
                       className={`chip-btn ${isActive ? 'active' : ''}`}
                       style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                       onClick={() => toggleEditCuisine(item.id)}
+                      aria-pressed={isActive}
                     >
                       <span>{item.label}</span>
                     </button>
@@ -354,6 +365,7 @@ export function RoomLobby({ onStartSwiping }) {
                       className={`chip-btn ${isActive ? 'active' : ''}`}
                       style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                       onClick={() => toggleEditDietary(item.id)}
+                      aria-pressed={isActive}
                     >
                       <span>{item.label}</span>
                     </button>

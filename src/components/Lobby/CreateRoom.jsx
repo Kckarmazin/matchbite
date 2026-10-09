@@ -208,6 +208,7 @@ export function CreateRoom({ onSwitchToJoin }) {
             onChange={(e) => setHostName(e.target.value)}
             maxLength={30}
             required
+            style={{ fontSize: '16px' }}
           />
         </div>
 
@@ -221,6 +222,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                 className={`avatar-btn ${hostAvatar === emoji ? 'selected' : ''}`}
                 onClick={() => setHostAvatar(emoji)}
                 aria-label={`Select avatar ${emoji}`}
+                aria-pressed={hostAvatar === emoji}
               >
                 {emoji}
               </button>
@@ -240,6 +242,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                 key={type.id}
                 className={`chip-btn ${groupType === type.id ? 'active' : ''}`}
                 onClick={() => setGroupType(type.id)}
+                aria-pressed={groupType === type.id}
               >
                 <span>{type.label}</span>
               </button>
@@ -259,6 +262,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                 key={cat.id}
                 className={`chip-btn ${activityCategory === cat.id ? 'active' : ''}`}
                 onClick={() => setActivityCategory(cat.id)}
+                aria-pressed={activityCategory === cat.id}
               >
                 <span>{cat.label}</span>
               </button>
@@ -305,6 +309,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                     className={`chip-btn ${isActive ? 'active' : ''}`}
                     style={{ padding: '6px 12px', fontSize: '0.82rem' }}
                     onClick={() => toggleCuisine(item.id)}
+                    aria-pressed={isActive}
                   >
                     <span>{item.label}</span>
                   </button>
@@ -330,6 +335,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                   className={`chip-btn ${isActive ? 'active' : ''}`}
                   style={{ flex: 1, padding: '10px 0' }}
                   onClick={() => togglePrice(tier)}
+                  aria-pressed={isActive}
                 >
                   <span style={{ fontWeight: 800 }}>{label}</span>
                 </button>
@@ -353,6 +359,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                   className={`chip-btn ${isActive ? 'active' : ''}`}
                   style={{ padding: '6px 12px', fontSize: '0.82rem' }}
                   onClick={() => toggleDietary(item.id)}
+                  aria-pressed={isActive}
                 >
                   <span>{item.label}</span>
                 </button>
@@ -394,6 +401,7 @@ export function CreateRoom({ onSwitchToJoin }) {
             placeholder="e.g. 78704, Austin, or 90210 (or tap GPS / cities below)"
             value={locationName}
             onChange={(e) => handleLocationChange(e.target.value)}
+            style={{ fontSize: '16px' }}
           />
 
           {locationStatus === 'resolving' && (
@@ -416,6 +424,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                 className={`chip-btn ${locationName === city ? 'active' : ''}`}
                 style={{ padding: '4px 10px', fontSize: '0.78rem' }}
                 onClick={() => handleSelectCityChip(city)}
+                aria-pressed={locationName === city}
               >
                 {city.split(',')[0]}
               </button>
@@ -440,6 +449,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                 className={`chip-btn ${distance === dist.id ? 'active' : ''}`}
                 style={{ flex: 1, padding: '10px 4px' }}
                 onClick={() => setDistance(dist.id)}
+                aria-pressed={distance === dist.id}
               >
                 <span>{dist.label}</span>
               </button>
@@ -471,6 +481,7 @@ export function CreateRoom({ onSwitchToJoin }) {
                   textAlign: 'left',
                 }}
                 onClick={() => setDeckSize(opt.id)}
+                aria-pressed={deckSize === opt.id}
               >
                 <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{opt.label}</span>
                 <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>{opt.desc}</span>
