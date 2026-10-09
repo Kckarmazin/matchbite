@@ -1,0 +1,11 @@
+# Worker M1 Remediation Context
+- Scope: Remediation of Milestone 1 Broken Access Control (Decouple Public IDs from Secret Capability Tokens)
+- Working directory: C:\Users\kck50\teamwork_projects\niche_web_app\.agents\teamwork\worker_m1_remediate_1
+- Parent: orchestrator_2 (20812a10-1e1e-4b2a-8eec-3122d65537ad)
+- Project root: C:\Users\kck50\teamwork_projects\niche_web_app
+- Request: C:\Users\kck50\teamwork_projects\niche_web_app\ORIGINAL_REQUEST.md
+- Scope Doc: C:\Users\kck50\teamwork_projects\niche_web_app\PROJECT.md
+- Failure Report: C:\Users\kck50\teamwork_projects\niche_web_app\.agents\teamwork\challenger_m1_2\handoff.md
+- Fix Blueprint 1: C:\Users\kck50\teamwork_projects\niche_web_app\.agents\teamwork\explorer_m1_fix_1\fix_strategy.md
+- Fix Blueprint 2: C:\Users\kck50\teamwork_projects\niche_web_app\.agents\teamwork\explorer_m1_fix_2\fix_strategy.md
+- Fix Blueprint 3: C:\Users\kck50\teamwork_projects\niche_web_app\.agents\teamwork\explorer_m1_fix_3\fix_strategy.md

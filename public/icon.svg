@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF5A5F"/>
+      <stop offset="100%" stop-color="#FF8A00"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1d24"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <!-- Glowing Border -->
+  <rect width="496" height="496" x="8" y="8" rx="120" fill="none" stroke="url(#mbGrad)" stroke-width="8" opacity="0.4"/>
+  <!-- Central Emblem: Pizza Heart -->
+  <path d="M256 100 C 190 100, 140 160, 140 220 C 140 310, 256 410, 256 410 C 256 410, 372 310, 372 220 C 372 160, 322 100, 256 100 Z" fill="url(#mbGrad)"/>
+  <!-- Inner Flame / Heart Slice -->
+  <path d="M256 150 C 215 150, 185 190, 185 230 C 185 290, 256 360, 256 360 C 256 360, 327 290, 327 230 C 327 190, 297 150, 256 150 Z" fill="#ffffff" opacity="0.95"/>
+  <!-- Sparkles -->
+  <circle cx="256" cy="245" r="22" fill="#FF5A5F"/>
+  <circle cx="225" cy="215" r="14" fill="#FF8A00"/>
+  <circle cx="287" cy="215" r="14" fill="#FF8A00"/>
+</svg>

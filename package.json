@@ -1,0 +1,39 @@
+{
+  "name": "matchbite-app",
+  "version": "1.0.0",
+  "description": "Tinder-style group indecision swiping web app with instant consensus matching",
+  "type": "module",
+  "scripts": {
+    "dev:server": "node server/index.js",
+    "dev:client": "vite",
+    "dev": "concurrently --kill-others-on-fail -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cap:sync": "cap sync",
+    "cap:add:ios": "cap add ios",
+    "cap:add:android": "cap add android",
+    "cap:open:ios": "cap open ios",
+    "cap:open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.3",
+    "canvas-confetti": "^1.9.4",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "lucide-react": "^1.53.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "concurrently": "^9.0.1",
+    "supertest": "^7.0.0",
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
+  }
+}
