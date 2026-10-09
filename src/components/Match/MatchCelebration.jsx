@@ -207,6 +207,19 @@ export function MatchCelebration({
     ? (/^https?:\/\//i.test(rawWebsite.trim()) ? rawWebsite.trim() : `https://${rawWebsite.trim()}`)
     : `https://www.google.com/search?q=${encodeURIComponent(`${venue.name} ${venue.address || ''}`.trim())}`;
 
+  const cleanDescription = (desc) => {
+    if (!desc || typeof desc !== 'string') return '';
+    return desc
+      .replace(/(?:🌐\s*)?Website\s+and\s+/gi, '')
+      .replace(/(?:,\s*)?and\s+(?:🌐\s*)?Website/gi, '')
+      .replace(/,\s*(?:🌐\s*)?Website/gi, '')
+      .replace(/(?:🌐\s*)?Website/gi, '')
+      .replace(/\s*Highlights include.*$/gi, '')
+      .replace(/\blocal\s+local\b/gi, 'local')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+
   return (
     <div className="match-celebration-container">
       {/* Victory Header */}
@@ -261,15 +274,17 @@ export function MatchCelebration({
             {venue.address}
           </p>
 
-          <p className="venue-desc">{venue.description}</p>
+          <p className="venue-desc">{cleanDescription(venue.description)}</p>
 
           {/* Tags */}
           <div className="venue-tags">
-            {(venue.tags || []).map((t) => (
-              <span key={t} className="venue-tag">
-                {t}
-              </span>
-            ))}
+            {(venue.tags || [])
+              .filter((t) => typeof t === 'string' && !t.toLowerCase().includes('website') && !t.includes('🌐'))
+              .map((t) => (
+                <span key={t} className="venue-tag">
+                  {t}
+                </span>
+              ))}
           </div>
 
           {/* 100% Unanimous Agreement Section */}

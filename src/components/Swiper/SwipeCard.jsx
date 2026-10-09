@@ -168,14 +168,17 @@ export function SwipeCard({
     ? (/^https?:\/\//i.test(rawWebsite.trim()) ? rawWebsite.trim() : `https://${rawWebsite.trim()}`)
     : `https://www.google.com/search?q=${encodeURIComponent(`${venue.name} ${venue.address || ''}`.trim())}`;
 
-  const handleOpenWebsite = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (typeof window !== 'undefined' && websiteUrl) {
-      window.open(websiteUrl, '_blank', 'noopener,noreferrer');
-    }
+  const cleanDescription = (desc) => {
+    if (!desc || typeof desc !== 'string') return '';
+    return desc
+      .replace(/(?:🌐\s*)?Website\s+and\s+/gi, '')
+      .replace(/(?:,\s*)?and\s+(?:🌐\s*)?Website/gi, '')
+      .replace(/,\s*(?:🌐\s*)?Website/gi, '')
+      .replace(/(?:🌐\s*)?Website/gi, '')
+      .replace(/\s*Highlights include.*$/gi, '')
+      .replace(/\blocal\s+local\b/gi, 'local')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   };
 
   return (
@@ -270,40 +273,16 @@ export function SwipeCard({
           {venue.address}
         </p>
 
-        <p className="venue-desc">{venue.description}</p>
+        <p className="venue-desc">{cleanDescription(venue.description)}</p>
 
         <div className="venue-tags">
-          {(venue.tags || []).map((tag) => {
-            const isWeb = typeof tag === 'string' && (tag.toLowerCase().includes('website') || tag.includes('🌐'));
-            if (isWeb) {
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className="venue-tag venue-tag-clickable"
-                  onClick={handleOpenWebsite}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  style={{
-                    cursor: 'pointer',
-                    background: 'rgba(255, 75, 110, 0.1)',
-                    color: 'var(--primary)',
-                    borderColor: 'var(--primary)',
-                    fontWeight: 700,
-                  }}
-                  title="Visit venue website"
-                >
-                  <Globe size={12} />
-                  <span>{tag.replace(/^🌐\s*/, '')}</span>
-                  <ExternalLink size={10} />
-                </button>
-              );
-            }
-            return (
+          {(venue.tags || [])
+            .filter((tag) => typeof tag === 'string' && !tag.toLowerCase().includes('website') && !tag.includes('🌐'))
+            .map((tag) => (
               <span key={tag} className="venue-tag">
                 {tag}
               </span>
-            );
-          })}
+            ))}
         </div>
       </div>
 
@@ -392,10 +371,10 @@ export function SwipeCard({
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
-                    title="Visit official website or search page"
+                    title="Visit official website"
                   >
                     <Globe size={13} style={{ marginRight: '2px' }} />
-                    <span>Website</span>
+                    <span>Official Website</span>
                     <ExternalLink size={12} />
                   </a>
                   {venue.phone && (
@@ -427,47 +406,27 @@ export function SwipeCard({
                   <Sparkles size={15} color="#F59E0B" /> Highlights & Atmosphere
                 </h4>
                 <div className="sheet-highlights-grid">
-                  {(venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience']).map((hl) => {
-                    const isWeb = typeof hl === 'string' && (hl.toLowerCase().includes('website') || hl.includes('🌐'));
-                    if (isWeb) {
-                      return (
-                        <a
-                          key={hl}
-                          href={websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="sheet-highlight-pill sheet-highlight-pill-clickable"
-                          onClick={(e) => e.stopPropagation()}
-                          style={{
-                            cursor: 'pointer',
-                            textDecoration: 'none',
-                            color: 'var(--primary)',
-                            borderColor: 'var(--primary)',
-                          }}
-                          title="Visit venue website"
-                        >
-                          <Globe size={13} color="var(--primary)" />
-                          <span style={{ fontWeight: 700 }}>{hl.replace(/^🌐\s*/, '')}</span>
-                          <ExternalLink size={11} color="var(--primary)" style={{ marginLeft: 'auto' }} />
-                        </a>
-                      );
-                    }
-                    return (
-                      <div key={hl} className="sheet-highlight-pill">
-                        <CheckCircle size={13} color="var(--success)" />
-                        <span>{hl}</span>
-                      </div>
-                    );
-                  })}
+                  {((venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience'])
+                    .filter((hl) => typeof hl === 'string' && !hl.toLowerCase().includes('website') && !hl.includes('🌐'))
+                    .length > 0
+                      ? (venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience'])
+                          .filter((hl) => typeof hl === 'string' && !hl.toLowerCase().includes('website') && !hl.includes('🌐'))
+                      : ['Top Rated Local Spot', 'Popular with Groups', 'Great Ambience']
+                  ).map((hl) => (
+                    <div key={hl} className="sheet-highlight-pill">
+                      <CheckCircle size={13} color="var(--success)" />
+                      <span>{hl}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               {/* Full Description */}
-              {venue.description && (
+              {cleanDescription(venue.description) && (
                 <div className="sheet-section">
                   <h4 className="sheet-section-title">About this Spot</h4>
                   <p className="sheet-text" style={{ lineHeight: 1.55 }}>
-                    {venue.description}
+                    {cleanDescription(venue.description)}
                   </p>
                 </div>
               )}
@@ -478,38 +437,13 @@ export function SwipeCard({
                   <Utensils size={15} color="var(--primary)" /> Cuisine & Vibe Tags
                 </h4>
                 <div className="venue-tags" style={{ marginTop: '6px' }}>
-                  {(venue.tags || []).map((t) => {
-                    const isWeb = typeof t === 'string' && (t.toLowerCase().includes('website') || t.includes('🌐'));
-                    if (isWeb) {
-                      return (
-                        <a
-                          key={t}
-                          href={websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="venue-tag venue-tag-clickable"
-                          onClick={(e) => e.stopPropagation()}
-                          style={{
-                            cursor: 'pointer',
-                            textDecoration: 'none',
-                            color: 'var(--primary)',
-                            borderColor: 'var(--primary)',
-                            fontWeight: 700,
-                          }}
-                          title="Visit venue website"
-                        >
-                          <Globe size={12} />
-                          <span>{t.replace(/^🌐\s*/, '')}</span>
-                          <ExternalLink size={10} />
-                        </a>
-                      );
-                    }
-                    return (
+                  {(venue.tags || [])
+                    .filter((t) => typeof t === 'string' && !t.toLowerCase().includes('website') && !t.includes('🌐'))
+                    .map((t) => (
                       <span key={t} className="venue-tag">
                         {t}
                       </span>
-                    );
-                  })}
+                    ))}
                 </div>
               </div>
             </div>

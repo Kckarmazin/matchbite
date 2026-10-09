@@ -139,7 +139,6 @@ describe('Tier 1: Quick Wins UX Audit Verification Suite', () => {
       expect(content).toContain('aria-pressed={hostAvatar === emoji}');
       expect(content).toContain('aria-pressed={groupType === type.id}');
       expect(content).toContain('aria-pressed={activityCategory === cat.id}');
-      expect(content).toContain('aria-pressed={locationName === city}');
       expect(content).toContain('aria-pressed={distance === dist.id}');
       expect(content).toContain('aria-pressed={deckSize === opt.id}');
       expect(content).toContain('aria-pressed={isActive}');

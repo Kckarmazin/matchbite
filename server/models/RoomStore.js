@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { generateRoomCode, normalizeRoomCode } from './RoomCode.js';
 import { CONFIG } from '../config.js';
 import { globalBroadcaster } from '../sync/Broadcaster.js';
-import { globalPlacesService, calculateDistanceMiles } from '../services/PlacesService.js';
+import { globalPlacesService, calculateDistanceMiles, cleanVenueDescription } from '../services/PlacesService.js';
 
 export const FORBIDDEN_PROPERTY_NAMES = Object.freeze([
   '__proto__',
@@ -487,14 +487,22 @@ export class RoomStore {
       const seedWebsite = rawWeb
         ? (/^https?:\/\//i.test(rawWeb.trim()) ? rawWeb.trim() : `https://${rawWeb.trim()}`)
         : `https://www.google.com/search?q=${encodeURIComponent(`${v.name} ${v.address || ''}`.trim())}`;
+      
+      const cleanTags = (v.tags || []).filter(t => typeof t === 'string' && !t.toLowerCase().includes('website') && !t.includes('🌐'));
+      const rawHighlights = v.highlights || (cleanTags.length > 0 ? cleanTags : ['Top Rated', 'Popular with Groups', 'Great Ambience']);
+      const cleanHighlights = rawHighlights.filter(h => typeof h === 'string' && !h.toLowerCase().includes('website') && !h.includes('🌐'));
+
       return {
         ...v,
         distance: `${miles.toFixed(1)} mi`,
         distanceNum: miles,
         websiteUrl: seedWebsite,
-        highlights: v.highlights || (v.tags && v.tags.length > 0 ? v.tags : ['Top Rated', 'Popular with Groups', 'Great Ambience']),
+        tags: cleanTags,
+        highlights: cleanHighlights.length > 0 ? cleanHighlights : ['Top Rated Local Spot', 'Popular with Groups', 'Great Ambience'],
+        description: cleanVenueDescription(v.description),
         affiliateLinks: {
           ...v.affiliateLinks,
+          directionsUrl: v.affiliateLinks?.directionsUrl || `https://maps.google.com/?q=${encodeURIComponent(`${v.name} ${v.address || ''}`.trim())}`,
           websiteUrl: seedWebsite,
         },
       };

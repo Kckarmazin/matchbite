@@ -566,7 +566,6 @@ out center ${queryLimit};`;
       if (brewery) tags.push('🍺 Craft Brews');
       if (vegetarian) tags.push('🌱 Veg Friendly');
       if (wifi) tags.push('📶 Free Wi-Fi');
-      if (website) tags.push('🌐 Website');
 
       // Ensure at least 3-4 lively tags per card
       if (tags.length < 3) {
@@ -583,14 +582,14 @@ out center ${queryLimit};`;
       if (brewery) highlights.push('Craft Beverages & Brews');
       if (wifi) highlights.push('Free Wi-Fi Access');
       if (vegetarian) highlights.push('Vegetarian-Friendly');
-      if (website) highlights.push('🌐 Website');
       if (highlights.length === 0) {
         highlights.push('Top Rated Local Spot', 'Welcoming Atmosphere', 'Popular with Groups');
       }
-      const highlightSentence = highlights.length > 0 
-        ? ` Highlights include ${highlights.join(' and ')}.` 
-        : ' Serving signature local favorites in a welcoming atmosphere.';
-      const description = `${prefix} ${cuisine.toLowerCase()} spot rated ${rating}★ based on ${reviewCount} reviews.${highlightSentence}`;
+      let cleanPrefix = prefix;
+      if (cleanPrefix.toLowerCase().endsWith('local') && cuisine.toLowerCase().startsWith('local')) {
+        cleanPrefix = cleanPrefix.replace(/\s+local$/i, '');
+      }
+      const description = `${cleanPrefix} ${cuisine.toLowerCase()} spot rated ${rating}★ based on ${reviewCount} reviews.`;
 
       return {
         id: `osm-${node.id}`,
@@ -1196,11 +1195,16 @@ out center ${queryLimit};`;
       const seedWebsite = rawWeb
         ? (/^https?:\/\//i.test(rawWeb.trim()) ? rawWeb.trim() : `https://${rawWeb.trim()}`)
         : `https://www.google.com/search?q=${encodeURIComponent(v.name + ' ' + address)}`;
+      const cleanTags = (v.tags || []).filter(t => typeof t === 'string' && !t.toLowerCase().includes('website') && !t.includes('🌐'));
+      const rawHighlights = v.highlights || (cleanTags.length > 0 ? cleanTags : ['Top Rated', 'Popular with Groups', 'Great Ambience']);
+      const cleanHighlights = rawHighlights.filter(h => typeof h === 'string' && !h.toLowerCase().includes('website') && !h.includes('🌐'));
       return {
         ...v,
         distance: distStr,
         websiteUrl: seedWebsite,
-        highlights: v.highlights || (v.tags && v.tags.length > 0 ? v.tags : ['Top Rated', 'Popular with Groups', 'Great Ambience']),
+        tags: cleanTags,
+        highlights: cleanHighlights.length > 0 ? cleanHighlights : ['Top Rated Local Spot', 'Popular with Groups', 'Great Ambience'],
+        description: cleanVenueDescription(v.description),
         affiliateLinks: {
           ...v.affiliateLinks,
           directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(v.name + ' ' + address)}`,
@@ -1306,6 +1310,19 @@ out center ${queryLimit};`;
     }
     return candidate.slice(0, targetLimit);
   }
+}
+
+export function cleanVenueDescription(desc) {
+  if (!desc || typeof desc !== 'string') return '';
+  return desc
+    .replace(/(?:🌐\s*)?Website\s+and\s+/gi, '')
+    .replace(/(?:,\s*)?and\s+(?:🌐\s*)?Website/gi, '')
+    .replace(/,\s*(?:🌐\s*)?Website/gi, '')
+    .replace(/(?:🌐\s*)?Website/gi, '')
+    .replace(/\s*Highlights include.*$/gi, '')
+    .replace(/\blocal\s+local\b/gi, 'local')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 export const globalPlacesService = new PlacesService();

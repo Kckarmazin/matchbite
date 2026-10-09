@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../../server/index.js';
-import { PlacesService, calculateDistanceMiles, POPULAR_CITIES, CUISINE_PHOTOS } from '../../server/services/PlacesService.js';
+import { PlacesService, calculateDistanceMiles, POPULAR_CITIES, CUISINE_PHOTOS, cleanVenueDescription } from '../../server/services/PlacesService.js';
 import { RoomStore } from '../../server/models/RoomStore.js';
 import { Broadcaster } from '../../server/sync/Broadcaster.js';
 
@@ -250,7 +250,37 @@ describe('PlacesService: Zero API Key Real Venue Data Pipeline', () => {
         expect(v.websiteUrl).toBeDefined();
         expect(v.websiteUrl).toMatch(/^https?:\/\//);
         expect(Array.isArray(v.highlights)).toBe(true);
+        // Website must NOT be in highlights or tags
+        for (const hl of v.highlights) {
+          expect(hl.toLowerCase()).not.toContain('website');
+          expect(hl).not.toContain('🌐');
+        }
+        for (const tag of v.tags || []) {
+          expect(tag.toLowerCase()).not.toContain('website');
+          expect(tag).not.toContain('🌐');
+        }
+        if (v.description) {
+          expect(v.description.toLowerCase()).not.toContain('website');
+          expect(v.description).not.toContain('🌐');
+        }
       }
+    });
+
+    it('cleanVenueDescription removes website mentions and redundant Highlights include text', () => {
+      const contaminated1 = 'Vibrant local local eatery spot rated 4.6★ based on 523 reviews. Highlights include 🌐 Website.';
+      const cleaned1 = cleanVenueDescription(contaminated1);
+      expect(cleaned1).not.toContain('Website');
+      expect(cleaned1).not.toContain('🌐');
+      expect(cleaned1).not.toContain('local local');
+      expect(cleaned1).not.toContain('Highlights include');
+      expect(cleaned1).toBe('Vibrant local eatery spot rated 4.6★ based on 523 reviews.');
+
+      const contaminated2 = 'Beloved neighborhood dining spot rated 4.8★ based on 120 reviews. Highlights include Outdoor Patio Seating and 🌐 Website.';
+      const cleaned2 = cleanVenueDescription(contaminated2);
+      expect(cleaned2).not.toContain('Website');
+      expect(cleaned2).not.toContain('🌐');
+      expect(cleaned2).not.toContain('Highlights include');
+      expect(cleaned2).toBe('Beloved neighborhood dining spot rated 4.8★ based on 120 reviews.');
     });
   });
 });

@@ -142,30 +142,12 @@ export function CreateRoom({ onSwitchToJoin }) {
     setLocationStatus(clean ? 'custom' : null);
   };
 
-  const handleSelectCityChip = async (city) => {
-    setLocationName(city);
-    setLocationError('');
-    setLocationStatus('resolving');
-    try {
-      const res = await fetch(`/api/places/geocode?query=${encodeURIComponent(city)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCoordinates({ lat: data.lat, lng: data.lng });
-        setLocationStatus(`detected:${city}`);
-        return;
-      }
-    } catch {
-      // fallback
-    }
-    setLocationStatus('custom');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!hostName.trim()) return;
 
     if (!locationName.trim()) {
-      setLocationError('Please enter a location (city, zip code, or tap GPS / a city below).');
+      setLocationError('Please enter a location (city, zip code, or tap Use My GPS).');
       return;
     }
 
@@ -313,7 +295,7 @@ export function CreateRoom({ onSwitchToJoin }) {
           <input
             type="text"
             className="form-input"
-            placeholder="e.g. 78704, Austin, or 90210 (or tap GPS / cities below)"
+            placeholder="e.g. 78704, Austin, or 90210 (or tap Use My GPS)"
             value={locationName}
             onChange={(e) => handleLocationChange(e.target.value)}
             required
@@ -337,21 +319,6 @@ export function CreateRoom({ onSwitchToJoin }) {
               <span>✓ Located: {locationStatus.replace('detected:', '')} — Live local spots ready!</span>
             </div>
           )}
-
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-            {['Austin, TX', 'New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Miami, FL'].map((city) => (
-              <button
-                type="button"
-                key={city}
-                className={`chip-btn ${locationName === city ? 'active' : ''}`}
-                style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                onClick={() => handleSelectCityChip(city)}
-                aria-pressed={locationName === city}
-              >
-                {city.split(',')[0]}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Progressive Disclosure: Collapsible "Adjust Preferences" Drawer */}
