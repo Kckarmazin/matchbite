@@ -384,9 +384,9 @@ export function CreateRoom({ onSwitchToJoin }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
             {[
               { id: 'all', label: '🌟 All Places', desc: 'Every spot near zip' },
-              { id: '50', label: '🔥 50 Spots', desc: 'Deep Dive' },
-              { id: '25', label: '👌 25 Spots', desc: 'Standard' },
-              { id: '12', label: '⚡ 12 Spots', desc: 'Quick session' },
+              { id: '25', label: '🔥 25 Spots', desc: 'Deep Dive' },
+              { id: '15', label: '👌 15 Spots', desc: 'Standard' },
+              { id: '8', label: '⚡ 8 Spots', desc: 'Quick session' },
             ].map((opt) => (
               <button
                 type="button"

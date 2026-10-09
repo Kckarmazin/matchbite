@@ -413,83 +413,120 @@ out center ${limit};`;
 
     // 1. Try Google Places API (New) - v1/places:searchNearby
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': key,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.primaryTypeDisplayName,places.rating,places.userRatingCount,places.priceLevel,places.formattedAddress,places.location,places.photos',
-        },
-        body: JSON.stringify({
-          includedTypes: [newApiType],
-          maxResultCount: Math.min(20, limit),
-          locationRestriction: {
-            circle: {
-              center: { latitude: lat, longitude: lng },
-              radius: radiusMeters,
-            },
-          },
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.places) && data.places.length > 0) {
-          return data.places.map((place, idx) => {
-            const name = place.displayName?.text || 'Local Spot';
-            const rawCuisine = place.primaryTypeDisplayName?.text || category;
-            const cuisine = rawCuisine ? rawCuisine.charAt(0).toUpperCase() + rawCuisine.slice(1) : 'Local Eatery';
-            const placeLat = place.location?.latitude ?? lat;
-            const placeLng = place.location?.longitude ?? lng;
-            const distanceNum = calculateDistanceMiles(lat, lng, placeLat, placeLng);
-            const address = place.formattedAddress || 'Nearby';
-            const rating = Number((place.rating || (4.3 + (idx % 5) * 0.1)).toFixed(1));
-            const reviewCount = place.userRatingCount || (100 + (idx * 27));
-
-            let priceTier = 2;
-            if (place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE') priceTier = 1;
-            else if (place.priceLevel === 'PRICE_LEVEL_MODERATE') priceTier = 2;
-            else if (place.priceLevel === 'PRICE_LEVEL_EXPENSIVE') priceTier = 3;
-            else if (place.priceLevel === 'PRICE_LEVEL_VERY_EXPENSIVE') priceTier = 4;
-
-            let imageUrl = null;
-            if (place.photos && place.photos.length > 0 && place.photos[0].name) {
-              imageUrl = `https://places.googleapis.com/v1/${place.photos[0].name}/media?maxHeightPx=800&maxWidthPx=800&key=${key}`;
-            } else {
-              imageUrl = this.getImageForVenue(name, cuisine, category);
-            }
-
-            return {
-              id: `google-${place.id}`,
-              name,
-              category: category.toLowerCase(),
-              cuisine,
-              priceTier,
-              rating,
-              reviewCount,
-              distance: `${distanceNum.toFixed(1)} mi`,
-              address,
-              imageUrl,
-              tags: [cuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
-              description: `Highly-rated ${cuisine} venue (${rating}★, ${reviewCount} reviews).`,
-              isPromoted: idx === 0,
-              sponsorBadge: idx === 0 ? 'Featured' : null,
-              sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
-              affiliateLinks: {
-                directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
-                reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=google-${place.id}`,
-                deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=google-${place.id}`,
-              },
-            };
-          });
+      const typeGroups = [[newApiType]];
+      if (limit > 20 || limit === 'all') {
+        if (category === 'dining') {
+          typeGroups.push(['pizza_restaurant', 'american_restaurant', 'italian_restaurant', 'mexican_restaurant', 'seafood_restaurant']);
+          typeGroups.push(['bar', 'cafe', 'fast_food_restaurant', 'bistro']);
+        } else if (category === 'bars' || category === 'nightlife') {
+          typeGroups.push(['pub', 'night_club']);
+          typeGroups.push(['brewery', 'wine_bar']);
+        } else if (category === 'coffee') {
+          typeGroups.push(['coffee_shop', 'bakery']);
+        } else if (category === 'entertainment' || category === 'activities') {
+          typeGroups.push(['bowling_alley', 'amusement_center']);
         }
-      } else {
-        const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
-        console.warn(`[PlacesService] Google Places API (New) error ${res.status}:`, errText);
+      }
+
+      const results = await Promise.all(
+        typeGroups.map(async (types) => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Goog-Api-Key': key,
+                'X-Goog-FieldMask': 'places.id,places.displayName,places.primaryTypeDisplayName,places.rating,places.userRatingCount,places.priceLevel,places.formattedAddress,places.location,places.photos',
+              },
+              body: JSON.stringify({
+                includedTypes: types,
+                maxResultCount: 20,
+                locationRestriction: {
+                  circle: {
+                    center: { latitude: lat, longitude: lng },
+                    radius: radiusMeters,
+                  },
+                },
+              }),
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              const data = await res.json();
+              return Array.isArray(data.places) ? data.places : [];
+            } else {
+              const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+              console.warn(`[PlacesService] Google Places API (New) error ${res.status}:`, errText);
+            }
+          } catch (err) {
+            console.warn('[PlacesService] Google Places API (New) fetch threw:', err.message);
+          }
+          return [];
+        })
+      );
+
+      const combinedPlaces = [];
+      const seenIds = new Set();
+      for (const group of results) {
+        for (const place of group) {
+          if (place && place.id && !seenIds.has(place.id)) {
+            seenIds.add(place.id);
+            combinedPlaces.push(place);
+          }
+        }
+      }
+
+      if (combinedPlaces.length > 0) {
+        const targetLimit = limit === 'all' ? combinedPlaces.length : (Number(limit) || 20);
+        return combinedPlaces.slice(0, targetLimit).map((place, idx) => {
+          const name = place.displayName?.text || 'Local Spot';
+          const rawCuisine = place.primaryTypeDisplayName?.text || category;
+          const cuisine = rawCuisine ? rawCuisine.charAt(0).toUpperCase() + rawCuisine.slice(1) : 'Local Eatery';
+          const placeLat = place.location?.latitude ?? lat;
+          const placeLng = place.location?.longitude ?? lng;
+          const distanceNum = calculateDistanceMiles(lat, lng, placeLat, placeLng);
+          const address = place.formattedAddress || 'Nearby';
+          const rating = Number((place.rating || (4.3 + (idx % 5) * 0.1)).toFixed(1));
+          const reviewCount = place.userRatingCount || (100 + (idx * 27));
+
+          let priceTier = 2;
+          if (place.priceLevel === 'PRICE_LEVEL_INEXPENSIVE') priceTier = 1;
+          else if (place.priceLevel === 'PRICE_LEVEL_MODERATE') priceTier = 2;
+          else if (place.priceLevel === 'PRICE_LEVEL_EXPENSIVE') priceTier = 3;
+          else if (place.priceLevel === 'PRICE_LEVEL_VERY_EXPENSIVE') priceTier = 4;
+
+          let imageUrl = null;
+          if (place.photos && place.photos.length > 0 && place.photos[0].name) {
+            imageUrl = `/api/places/photo?name=${encodeURIComponent(place.photos[0].name)}`;
+          } else {
+            imageUrl = this.getImageForVenue(name, cuisine, category);
+          }
+
+          return {
+            id: `google-${place.id}`,
+            name,
+            category: category.toLowerCase(),
+            cuisine,
+            priceTier,
+            rating,
+            reviewCount,
+            distance: `${distanceNum.toFixed(1)} mi`,
+            address,
+            imageUrl,
+            tags: [cuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
+            description: `Highly-rated ${cuisine} venue (${rating}★, ${reviewCount} reviews).`,
+            isPromoted: idx === 0,
+            sponsorBadge: idx === 0 ? 'Featured' : null,
+            sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
+            affiliateLinks: {
+              directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
+              reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=google-${place.id}`,
+              deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=google-${place.id}`,
+            },
+          };
+        });
       }
     } catch (err) {
       console.warn('[PlacesService] Google Places API (New) request threw:', err.message);
@@ -523,7 +560,7 @@ out center ${limit};`;
 
             let imageUrl = null;
             if (place.photos && place.photos.length > 0 && place.photos[0].photo_reference) {
-              imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${place.photos[0].photo_reference}&key=${key}`;
+              imageUrl = `/api/places/photo?ref=${encodeURIComponent(place.photos[0].photo_reference)}`;
             } else {
               imageUrl = this.getImageForVenue(name, formattedCuisine, category);
             }

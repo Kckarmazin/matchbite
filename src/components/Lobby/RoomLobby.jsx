@@ -209,12 +209,20 @@ export function RoomLobby({ onStartSwiping }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.9rem' }}>
           <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>CATEGORY</div>
-            <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>{room.settings?.activityCategory || 'Dining'}</div>
+            <div style={{ fontWeight: 700 }}>
+              {room.settings?.activityCategory === 'bars' ? 'Bars & Lounges' :
+               room.settings?.activityCategory === 'entertainment' ? 'Activities' :
+               room.settings?.activityCategory === 'coffee' ? 'Cafe & Brunch' : 'Dining'}
+            </div>
           </div>
 
           <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>GROUP VIBE</div>
-            <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>{room.settings?.groupType || 'Friends'}</div>
+            <div style={{ fontWeight: 700 }}>
+              {room.settings?.groupType === 'couples' ? 'Date Night' :
+               room.settings?.groupType === 'coworkers' ? 'Team Lunch' :
+               room.settings?.groupType === 'family' ? 'Family' : 'Friends Out'}
+            </div>
           </div>
 
           <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
@@ -225,9 +233,18 @@ export function RoomLobby({ onStartSwiping }) {
           </div>
 
           <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>DISTANCE</div>
-            <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>
-              {room.settings?.distance === 'walkable' ? 'Walkable (<1mi)' : 'Short Drive (<5mi)'}
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>RADIUS</div>
+            <div style={{ fontWeight: 700 }}>
+              {room.settings?.distance === 'walkable' ? 'Walk (<1mi)' :
+               room.settings?.distance === 'metro_area' ? 'Any (<15mi)' : 'Drive (<5mi)'}
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', gridColumn: 'span 2' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>PLACES TO SWIPE</div>
+            <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
+              {room.settings?.deckSize === 'all' ? 'All Places (Every nearby spot)' :
+               `${room.settings?.deckSize || 12} Spots`}
             </div>
           </div>
 
