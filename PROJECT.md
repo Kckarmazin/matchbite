@@ -44,6 +44,15 @@ MatchBite is a responsive, zero-friction web application designed to solve group
 | 25 | Single-Command Build & Startup | Clean build (`npm run build`) and startup (`npm start` / `npm run dev`) | M6 | ORIGINAL_REQUEST Acceptance |
 | 26 | Tier 5 Adversarial Hardening | White-box edge case testing and code-coverage verification | M6 | Project Pattern |
 | 27 | Forensic Integrity Audit | Binary veto audit verifying authentic implementations and zero facade logic | M6 | Hard Constraints |
+| 28 | Deep Multi-Batch Venue Selection | Expand live provider queries across 12 Google Table A types and Overpass QL to return 50–100+ unique venues when `deckSize: 'all'` | M7 | Milestone M7 Dispatch |
+| 29 | Composite Spatial Deduplication | Deduplicate venues by provider ID + normalized name and geographic proximity (< 0.15 mi) to preserve metro branches | M7 | Milestone M7 Dispatch |
+| 30 | Haversine Distance Calculation | Accurate spherical distance calculation between room coordinates and venue locations in miles (`${dist.toFixed(1)} mi`) | M7 | Milestone M7 Dispatch |
+| 31 | Radius Enforcement & Fallback Padding | Strict radius confinement (`walkable` <= 1.0 mi, `short_drive` <= 5.0 mi, `metro_area` <= 15.0 mi) with proximity fallback padding if < 4 venues | M7 | Milestone M7 Dispatch |
+| 32 | Ascending Distance Candidate Deck Sorting | Sort candidate decks closest-first (ascending distance) with promoted card anchor at index 2 | M7 | Milestone M7 Dispatch |
+| 33 | Cache Key Separation Across Radius Tiers | Separate PlacesService cache keys by lat/lng grid, category, cuisine, and distance tier (`dist-walkable`, `dist-short_drive`, etc.) | M7 | Milestone M7 Dispatch |
+| 34 | Interactive Lobby Adjustments & Deck Synchronization | Real-time cache invalidation, deck rebuilding, participant card count update, and SSE `deck:updated` broadcast on settings changes | M7 | Milestone M7 Dispatch |
+| 35 | Async Geocoding on Location Updates | Automatic asynchronous geocoding via Nominatim/popular cities when `locationName` is updated without coordinates | M7 | Milestone M7 Dispatch |
+| 36 | Automated Test Suite for Venue Discovery & Distance | Comprehensive Vitest suite (`venue-discovery-distance.test.js`) verifying discovery, distance math, sorting, radius, cache, and sync | M7 | Milestone M7 Dispatch |
 
 ---
 
@@ -57,6 +66,7 @@ MatchBite is a responsive, zero-friction web application designed to solve group
 | M4 | Automated Monetization & External Hooks | Affiliate links & redirect, promoted card, VIP upgrade checkout flow | M2 | DONE |
 | M5 | Automated Test & Quality Verification Suite | Vitest + Supertest suite (Tiers 1-4) passing 100% via `npm test` (203 tests) | M1, M2, M3, M4 | DONE |
 | M6 | Final Verification, Adversarial Hardening & Audit | Tier 5 tests, production build & run validation, Forensic Audit (234 tests across 12 suites) | M5 | DONE |
+| M7 | Venue Discovery Engine Expansion & Geographic Distance Precision | Expand live venue pipeline (50-100+ unique spots), Haversine distance, ascending sorting, radius bounds & fallback padding, distance-tiered caching, lobby sync & async geocoding (296 tests across 17 suites) | M6 | DONE |
 
 ---
 
@@ -94,6 +104,8 @@ niche_web_app/
 │   ├── models/
 │   │   ├── RoomStore.js
 │   │   └── RoomCode.js
+│   ├── services/
+│   │   └── PlacesService.js
 │   ├── sync/
 │   │   └── Broadcaster.js
 │   └── data/
@@ -136,17 +148,22 @@ niche_web_app/
     │   ├── r1-rooms.test.js
     │   ├── r2-swiping.test.js
     │   ├── r3-tiebreaker.test.js
-    │   └── r4-monetization.test.js
+    │   ├── r4-monetization.test.js
+    │   ├── places-service.test.js
+    │   ├── venue-discovery-distance.test.js
+    │   └── option-c-refinements.test.js
     ├── tier2-boundaries/
     │   ├── boundary-cases.test.js
     │   ├── m2-adversarial-security.test.js
-    │   └── m2-fuzzing-adversarial-probe.test.js
+    │   ├── m2-fuzzing-adversarial-probe.test.js
+    │   └── m7-adversarial-empirical-harness.test.js
     ├── tier3-combinations/
     │   └── cross-feature.test.js
     ├── tier4-workloads/
     │   └── real-world-scenarios.test.js
     ├── tier5-adversarial/
-    │   └── tier5-adversarial-hardening.test.js
+    │   ├── tier5-adversarial-hardening.test.js
+    │   └── m7-adversarial-discovery-stress.test.js
     ├── stress-concurrency-consensus.test.js
     └── adversarial-concurrency-deep-stress.test.js
 ```

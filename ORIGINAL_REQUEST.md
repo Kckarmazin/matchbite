@@ -104,3 +104,46 @@ All project requirements and specifications are defined in:
 - C:\Users\kck50\teamwork_projects\niche_web_app\PROJECT.md
 
 Integrity mode: development. Keep progress.md and BRIEFING.md updated. When all acceptance criteria pass with 100% tests and clean audit, report completion.
+
+## 2026-10-09T17:04:54Z
+
+Expand MatchBite's venue discovery engine to return a significantly larger selection of local restaurants and venues, and fix distance radius filtering so venues are accurately measured and prioritized by true geographic distance from the search origin.
+
+Working directory: `C:\Users\kck50\teamwork_projects\niche_web_app`
+Integrity mode: development
+
+## Requirements
+
+### R1. Deep Multi-Batch Venue Selection
+- The venue discovery engine must return a substantially larger selection of venues (targeting 50–100+ unique spots when "All Places" is selected in populated areas) across Google Places API and OpenStreetMap Overpass.
+- Parallelize multi-category queries, handle pagination/type expansion, and prevent duplicate entries across overlapping searches.
+- Ensure that selecting specific cuisine filters returns all available matching venues in the search area without artificially capping at single-batch API limits.
+
+### R2. Accurate Geographic Distance & Radius Filtering
+- Compute real geographic distance (Haversine formula from room coordinates / zip code) for every venue, ensuring displayed distance tags and values match actual physical proximity.
+- Incorporate distance settings into cache keys (`getGridKey`) so switching between Walkable (<1mi), Short Drive (<5mi), and Metro Area (<15mi) fetches and serves the appropriate geographic radius rather than stale cache hits from different radii.
+- Sort the candidate deck by distance ascending (closest first) so users always swipe through nearby spots before further ones.
+- Strictly prioritize venues within the selected radius (`walkable` <= 1.0 mi, `short_drive` <= 5.0 mi, `metro_area` <= 15.0 mi), with flexible fallback padding only if fewer than 4-6 spots exist in the immediate perimeter.
+
+### R3. Interactive Lobby Adjustments & Deck Synchronization
+- Ensure changes made to distance, cuisines, or deck size in the lobby (via the "Adjust" settings drawer) immediately invalidate mismatched caches and rebuild the swiping deck to match the updated radius and filters.
+- Display verified distance on cards and ensure the frontend deck correctly renders the expanded venue pool.
+
+### R4. Regression Guard & Test Verification
+- All 254 existing Vitest tests must continue to pass with 100% success rate.
+- Add targeted automated tests verifying distance calculation accuracy, distance sorting order, and cache separation across different radius tiers.
+
+## Acceptance Criteria
+
+### Venue Volume & Variety
+- [ ] Querying with `deckSize: 'all'` in an active metro area returns 50+ unique venues when using Google Places API or Overpass.
+- [ ] No duplicate venues exist in the swiping deck (verified by unique Place ID / coordinates / name deduplication).
+
+### Distance Precision
+- [ ] Venues in the candidate deck are sorted ascending by geographic distance from the search origin.
+- [ ] When `walkable` (<1mi) is chosen, places are within 1.0 mile (unless the area has < 4 spots, in which case closest available fallbacks are provided).
+- [ ] Cache keys in `PlacesService` distinguish between distance tiers so changing radius does not return stale caches.
+
+### Stability & Verification
+- [ ] `npm test` passes 100% across all test suites without regressions.
+- [ ] `npm run build` compiles cleanly with zero errors.

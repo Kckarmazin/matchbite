@@ -98,8 +98,51 @@ export function calculateDistanceMiles(lat1, lon1, lat2, lon2) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const clampedA = Math.min(1, Math.max(0, a));
+  const c = 2 * Math.atan2(Math.sqrt(clampedA), Math.sqrt(1 - clampedA));
   return R * c;
+}
+
+export function deduplicateVenues(venues) {
+  if (!Array.isArray(venues)) return [];
+  const seenIds = new Set();
+  const unique = [];
+
+  for (const venue of venues) {
+    if (!venue || !venue.id) continue;
+    if (seenIds.has(venue.id)) continue;
+
+    const cleanName = (venue.name || '').trim().toLowerCase();
+    const vLat = venue.lat != null ? Number(venue.lat) : null;
+    const vLng = venue.lng != null ? Number(venue.lng) : null;
+
+    let isCoLocatedDuplicate = false;
+    for (const existing of unique) {
+      const existingCleanName = (existing.name || '').trim().toLowerCase();
+      if (existingCleanName === cleanName) {
+        const eLat = existing.lat != null ? Number(existing.lat) : null;
+        const eLng = existing.lng != null ? Number(existing.lng) : null;
+
+        if (vLat != null && vLng != null && eLat != null && eLng != null) {
+          const distMiles = calculateDistanceMiles(vLat, vLng, eLat, eLng);
+          if (distMiles < 0.15) {
+            isCoLocatedDuplicate = true;
+            break;
+          }
+        } else {
+          isCoLocatedDuplicate = true;
+          break;
+        }
+      }
+    }
+
+    if (!isCoLocatedDuplicate) {
+      seenIds.add(venue.id);
+      unique.push(venue);
+    }
+  }
+
+  return unique;
 }
 
 export class PlacesService {
@@ -109,14 +152,20 @@ export class PlacesService {
     this.cacheTtlMs = 24 * 60 * 60 * 1000;
   }
 
-  getGridKey(lat, lng, category = 'dining', cuisinePreferences = []) {
-    if (lat == null || lng == null) return `global_${category}`;
-    const gridLat = (Math.round(lat * 50) / 50).toFixed(2);
-    const gridLng = (Math.round(lng * 50) / 50).toFixed(2);
+  deduplicateVenues(venues) {
+    return deduplicateVenues(venues);
+  }
+
+  getGridKey(lat, lng, category = 'dining', cuisinePreferences = [], distance = 'short_drive') {
+    const distKey = String(distance || 'short_drive').toLowerCase();
+    const catKey = (category || 'dining').toLowerCase();
     const cuisineSuffix = Array.isArray(cuisinePreferences) && cuisinePreferences.length > 0
       ? `_${cuisinePreferences.slice().sort().join('-')}`
       : '';
-    return `grid_${gridLat}_${gridLng}_${category.toLowerCase()}${cuisineSuffix}`;
+    if (lat == null || lng == null) return `global_${catKey}_dist-${distKey}${cuisineSuffix}`;
+    const gridLat = (Math.round(lat * 50) / 50).toFixed(2);
+    const gridLng = (Math.round(lng * 50) / 50).toFixed(2);
+    return `grid_${gridLat}_${gridLng}_${catKey}_dist-${distKey}${cuisineSuffix}`;
   }
 
   loadSeedVenues() {
@@ -264,7 +313,7 @@ export class PlacesService {
    * Fetches real live places from OpenStreetMap Overpass (free, zero API keys).
    * Pulls all available restaurants, bars, and cafes (nodes & buildings) near coordinates.
    */
-  async fetchLiveFromOverpass({ lat, lng, category = 'dining', maxDistanceMiles = 5.0, limit = 150 }) {
+  async fetchLiveFromOverpass({ lat, lng, category = 'dining', cuisinePreferences = [], maxDistanceMiles = 5.0, limit = 150 }) {
     if (process.env.NODE_ENV === 'test') {
       return [];
     }
@@ -284,11 +333,20 @@ export class PlacesService {
   way["amenity"~"cinema|theatre|nightclub|arts_centre|bowling_alley"](around:${radiusMeters},${lat},${lng});`;
     }
 
+    if (Array.isArray(cuisinePreferences) && cuisinePreferences.length > 0 && category === 'dining') {
+      const cuisineRegex = cuisinePreferences.map(c => String(c).toLowerCase().trim()).join('|');
+      amenityFilter = `node["amenity"~"restaurant|fast_food|bistro|cafe"]["cuisine"~"${cuisineRegex}",i](around:${radiusMeters},${lat},${lng});
+  way["amenity"~"restaurant|fast_food|bistro|cafe"]["cuisine"~"${cuisineRegex}",i](around:${radiusMeters},${lat},${lng});
+  node["amenity"~"restaurant|fast_food|bistro|cafe"](around:${radiusMeters},${lat},${lng});
+  way["amenity"~"restaurant|fast_food|bistro|cafe"](around:${radiusMeters},${lat},${lng});`;
+    }
+
+    const queryLimit = limit === 'all' || Number(limit) >= 150 ? 250 : (Number(limit) || 150);
     const query = `[out:json][timeout:12];
 (
   ${amenityFilter}
 );
-out center ${limit};`;
+out center ${queryLimit};`;
 
     const mirrors = [
       'https://overpass.openstreetmap.fr/api/interpreter',
@@ -334,18 +392,7 @@ out center ${limit};`;
       return hasTags && elLat != null && elLon != null;
     });
 
-    // Deduplicate by normalized venue name so duplicate listings on map corners don't clutter the deck
-    const seenNames = new Set();
-    const uniqueElements = [];
-    for (const el of validElements) {
-      const cleanName = el.tags.name.trim().toLowerCase();
-      if (!seenNames.has(cleanName)) {
-        seenNames.add(cleanName);
-        uniqueElements.push(el);
-      }
-    }
-
-    return uniqueElements.map((node, idx) => {
+    const mappedVenues = validElements.map((node, idx) => {
       const name = node.tags.name.trim();
       const nodeLat = node.lat ?? node.center?.lat ?? lat;
       const nodeLon = node.lon ?? node.center?.lon ?? lng;
@@ -378,6 +425,8 @@ out center ${limit};`;
         distance: `${distanceNum.toFixed(1)} mi`,
         address,
         imageUrl,
+        lat: nodeLat,
+        lng: nodeLon,
         tags: [cuisine, `${distanceNum.toFixed(1)} mi`, node.tags.outdoor_seating === 'yes' ? 'Patio' : 'Popular Spot'],
         description: `Local ${cuisine} spot rated ${rating}★ based on ${reviewCount} reviews.`,
         isPromoted: idx === 0,
@@ -390,6 +439,8 @@ out center ${limit};`;
         },
       };
     });
+
+    return this.deduplicateVenues(mappedVenues);
   }
 
   /**
@@ -418,24 +469,28 @@ out center ${limit};`;
     try {
       const typeGroups = [];
       const CUISINE_MAP = {
-        pizza: ['pizza_restaurant', 'italian_restaurant'],
-        italian: ['italian_restaurant', 'pizza_restaurant'],
-        mexican: ['mexican_restaurant'],
-        american: ['american_restaurant', 'hamburger_restaurant', 'steak_house'],
-        japanese: ['japanese_restaurant', 'sushi_restaurant', 'ramen_restaurant'],
-        asian: ['asian_restaurant', 'chinese_restaurant', 'thai_restaurant', 'japanese_restaurant'],
-        seafood: ['seafood_restaurant'],
-        steakhouse: ['steak_house', 'american_restaurant', 'barbecue_restaurant'],
-        mediterranean: ['mediterranean_restaurant', 'greek_restaurant', 'middle_eastern_restaurant'],
-        indian: ['indian_restaurant'],
-        thai: ['thai_restaurant', 'asian_restaurant'],
-        cafe: ['cafe', 'coffee_shop', 'bakery', 'breakfast_restaurant', 'brunch_restaurant'],
+        pizza: [['pizza_restaurant'], ['italian_restaurant'], ['pizza_restaurant', 'fast_food_restaurant']],
+        italian: [['italian_restaurant'], ['pizza_restaurant'], ['mediterranean_restaurant']],
+        mexican: [['mexican_restaurant'], ['latin_american_restaurant'], ['mexican_restaurant', 'barbecue_restaurant']],
+        american: [['american_restaurant'], ['hamburger_restaurant'], ['steak_house'], ['barbecue_restaurant']],
+        japanese: [['japanese_restaurant'], ['sushi_restaurant'], ['ramen_restaurant'], ['asian_restaurant']],
+        asian: [['asian_restaurant'], ['chinese_restaurant'], ['thai_restaurant'], ['japanese_restaurant'], ['vietnamese_restaurant'], ['korean_restaurant']],
+        seafood: [['seafood_restaurant'], ['american_restaurant', 'seafood_restaurant']],
+        steakhouse: [['steak_house'], ['barbecue_restaurant'], ['american_restaurant']],
+        mediterranean: [['mediterranean_restaurant'], ['greek_restaurant'], ['middle_eastern_restaurant']],
+        indian: [['indian_restaurant'], ['asian_restaurant', 'indian_restaurant']],
+        thai: [['thai_restaurant'], ['asian_restaurant', 'thai_restaurant'], ['vietnamese_restaurant']],
+        cafe: [['cafe'], ['coffee_shop'], ['bakery'], ['breakfast_restaurant'], ['brunch_restaurant']],
       };
 
       if (Array.isArray(cuisinePreferences) && cuisinePreferences.length > 0) {
         for (const c of cuisinePreferences) {
           const mapped = CUISINE_MAP[c.toLowerCase()];
-          if (mapped) typeGroups.push(mapped);
+          if (mapped) {
+            for (const grp of mapped) {
+              typeGroups.push(grp);
+            }
+          }
         }
       }
 
@@ -443,18 +498,33 @@ out center ${limit};`;
         typeGroups.push([newApiType]);
         if (limit > 20 || limit === 'all') {
           if (category === 'dining') {
-            typeGroups.push(['pizza_restaurant', 'american_restaurant', 'italian_restaurant']);
-            typeGroups.push(['mexican_restaurant', 'seafood_restaurant', 'steak_house']);
-            typeGroups.push(['asian_restaurant', 'japanese_restaurant', 'sushi_restaurant', 'chinese_restaurant', 'thai_restaurant', 'indian_restaurant']);
-            typeGroups.push(['mediterranean_restaurant', 'french_restaurant', 'greek_restaurant']);
-            typeGroups.push(['bar', 'pub', 'bistro', 'cafe', 'fast_food_restaurant', 'brunch_restaurant']);
+            typeGroups.push(['american_restaurant']);
+            typeGroups.push(['italian_restaurant']);
+            typeGroups.push(['mexican_restaurant']);
+            typeGroups.push(['asian_restaurant']);
+            typeGroups.push(['japanese_restaurant']);
+            typeGroups.push(['korean_restaurant']);
+            typeGroups.push(['vietnamese_restaurant']);
+            typeGroups.push(['pizza_restaurant']);
+            typeGroups.push(['bar']);
+            typeGroups.push(['cafe']);
+            typeGroups.push(['seafood_restaurant']);
+            typeGroups.push(['steak_house']);
           } else if (category === 'bars' || category === 'nightlife') {
-            typeGroups.push(['pub', 'night_club']);
-            typeGroups.push(['brewery', 'wine_bar']);
+            typeGroups.push(['pub']);
+            typeGroups.push(['night_club']);
+            typeGroups.push(['brewery']);
+            typeGroups.push(['wine_bar']);
+            typeGroups.push(['cocktail_bar']);
           } else if (category === 'coffee') {
-            typeGroups.push(['coffee_shop', 'bakery']);
+            typeGroups.push(['coffee_shop']);
+            typeGroups.push(['bakery']);
+            typeGroups.push(['cafe']);
           } else if (category === 'entertainment' || category === 'activities') {
-            typeGroups.push(['bowling_alley', 'amusement_center']);
+            typeGroups.push(['bowling_alley']);
+            typeGroups.push(['amusement_center']);
+            typeGroups.push(['movie_theater']);
+            typeGroups.push(['sports_club']);
           }
         }
       }
@@ -511,7 +581,7 @@ out center ${limit};`;
 
       if (combinedPlaces.length > 0) {
         const targetLimit = limit === 'all' ? combinedPlaces.length : (Number(limit) || 20);
-        return combinedPlaces.slice(0, targetLimit).map((place, idx) => {
+        const mappedGoogle = combinedPlaces.slice(0, targetLimit).map((place, idx) => {
           const name = place.displayName?.text || 'Local Spot';
           const rawCuisine = place.primaryTypeDisplayName?.text || category;
           const cuisine = rawCuisine ? rawCuisine.charAt(0).toUpperCase() + rawCuisine.slice(1) : 'Local Eatery';
@@ -546,6 +616,8 @@ out center ${limit};`;
             distance: `${distanceNum.toFixed(1)} mi`,
             address,
             imageUrl,
+            lat: placeLat,
+            lng: placeLng,
             tags: [cuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
             description: `Highly-rated ${cuisine} venue (${rating}★, ${reviewCount} reviews).`,
             isPromoted: idx === 0,
@@ -558,6 +630,7 @@ out center ${limit};`;
             },
           };
         });
+        return this.deduplicateVenues(mappedGoogle);
       }
     } catch (err) {
       console.warn('[PlacesService] Google Places API (New) request threw:', err.message);
@@ -565,64 +638,96 @@ out center ${limit};`;
 
     // 2. Fallback to Google Places Legacy Nearby Search
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${googleType}&key=${key}`;
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const legacyTypes = (limit > 20 || limit === 'all') && category === 'dining'
+        ? ['restaurant', 'cafe', 'bar', 'bakery', 'meal_takeaway']
+        : [googleType];
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-          console.warn(`[PlacesService] Google Places Legacy status: ${data.status} - ${data.error_message || ''}`);
-        }
-        if (data && Array.isArray(data.results) && data.results.length > 0) {
-          return data.results.slice(0, limit).map((place, idx) => {
-            const name = place.name || 'Local Spot';
-            const cuisine = place.types?.[0]?.replace(/_/g, ' ') || 'Local Eatery';
-            const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1);
-            const placeLat = place.geometry?.location?.lat ?? lat;
-            const placeLng = place.geometry?.location?.lng ?? lng;
-            const distanceNum = calculateDistanceMiles(lat, lng, placeLat, placeLng);
-            const address = place.vicinity || 'Nearby';
-            const rating = Number((place.rating || (4.2 + (idx % 6) * 0.1)).toFixed(1));
-            const reviewCount = place.user_ratings_total || (120 + (idx * 31));
-            const priceTier = place.price_level || 2;
+      const legacyResults = await Promise.all(
+        legacyTypes.map(async (t) => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${t}&key=${key}`;
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
 
-            let imageUrl = null;
-            if (place.photos && place.photos.length > 0 && place.photos[0].photo_reference) {
-              imageUrl = `/api/places/photo?ref=${encodeURIComponent(place.photos[0].photo_reference)}`;
+            if (res.ok) {
+              const data = await res.json();
+              if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+                console.warn(`[PlacesService] Google Places Legacy status: ${data.status} - ${data.error_message || ''}`);
+              }
+              if (data && Array.isArray(data.results)) {
+                return data.results;
+              }
             } else {
-              imageUrl = this.getImageForVenue(name, formattedCuisine, category);
+              const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+              console.warn(`[PlacesService] Google Places Legacy error ${res.status}:`, errText);
             }
+          } catch (err) {
+            console.warn('[PlacesService] Google Places Legacy request threw:', err.message);
+          }
+          return [];
+        })
+      );
 
-            return {
-              id: `gplace-${place.place_id}`,
-              name,
-              category: category.toLowerCase(),
-              cuisine: formattedCuisine,
-              priceTier,
-              rating,
-              reviewCount,
-              distance: `${distanceNum.toFixed(1)} mi`,
-              address,
-              imageUrl,
-              tags: [formattedCuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
-              description: `Local ${formattedCuisine} venue (${rating}★, ${reviewCount} reviews).`,
-              isPromoted: idx === 0,
-              sponsorBadge: idx === 0 ? 'Featured' : null,
-              sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
-              affiliateLinks: {
-                directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
-                reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=gplace-${place.place_id}`,
-                deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=gplace-${place.place_id}`,
-              },
-            };
-          });
+      const combinedLegacy = [];
+      const seenPlaceIds = new Set();
+      for (const group of legacyResults) {
+        for (const place of group) {
+          if (place && place.place_id && !seenPlaceIds.has(place.place_id)) {
+            seenPlaceIds.add(place.place_id);
+            combinedLegacy.push(place);
+          }
         }
-      } else {
-        const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
-        console.warn(`[PlacesService] Google Places Legacy error ${res.status}:`, errText);
+      }
+
+      if (combinedLegacy.length > 0) {
+        const targetLimit = limit === 'all' ? combinedLegacy.length : (Number(limit) || 20);
+        const mappedLegacy = combinedLegacy.slice(0, targetLimit).map((place, idx) => {
+          const name = place.name || 'Local Spot';
+          const cuisine = place.types?.[0]?.replace(/_/g, ' ') || 'Local Eatery';
+          const formattedCuisine = cuisine.charAt(0).toUpperCase() + cuisine.slice(1);
+          const placeLat = place.geometry?.location?.lat ?? lat;
+          const placeLng = place.geometry?.location?.lng ?? lng;
+          const distanceNum = calculateDistanceMiles(lat, lng, placeLat, placeLng);
+          const address = place.vicinity || 'Nearby';
+          const rating = Number((place.rating || (4.2 + (idx % 6) * 0.1)).toFixed(1));
+          const reviewCount = place.user_ratings_total || (120 + (idx * 31));
+          const priceTier = place.price_level || 2;
+
+          let imageUrl = null;
+          if (place.photos && place.photos.length > 0 && place.photos[0].photo_reference) {
+            imageUrl = `/api/places/photo?ref=${encodeURIComponent(place.photos[0].photo_reference)}`;
+          } else {
+            imageUrl = this.getImageForVenue(name, formattedCuisine, category);
+          }
+
+          return {
+            id: `gplace-${place.place_id}`,
+            name,
+            category: category.toLowerCase(),
+            cuisine: formattedCuisine,
+            priceTier,
+            rating,
+            reviewCount,
+            distance: `${distanceNum.toFixed(1)} mi`,
+            address,
+            imageUrl,
+            lat: placeLat,
+            lng: placeLng,
+            tags: [formattedCuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
+            description: `Local ${formattedCuisine} venue (${rating}★, ${reviewCount} reviews).`,
+            isPromoted: idx === 0,
+            sponsorBadge: idx === 0 ? 'Featured' : null,
+            sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
+            affiliateLinks: {
+              directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
+              reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=gplace-${place.place_id}`,
+              deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=gplace-${place.place_id}`,
+            },
+          };
+        });
+        return this.deduplicateVenues(mappedLegacy);
       }
     } catch (err) {
       console.warn('[PlacesService] Google Places Legacy request threw:', err.message);
@@ -683,13 +788,13 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return;
 
-    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences, settings.distance);
     if (this.cache.has(gridKey)) return;
 
     let maxDistanceMiles = 5.0;
     if (settings.distance === 'metro_area') maxDistanceMiles = 15.0;
     else if (settings.distance === 'short_drive') maxDistanceMiles = 5.0;
-    else if (settings.distance === 'walkable') maxDistanceMiles = 2.5;
+    else if (settings.distance === 'walkable') maxDistanceMiles = 1.0;
     else if (typeof settings.distance === 'number') maxDistanceMiles = settings.distance;
 
     const limit = settings.deckSize === 'all' ? 150 : (Number(settings.deckSize) ? Math.min(150, Number(settings.deckSize)) : 150);
@@ -728,7 +833,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return;
 
-    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences, settings.distance);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && cached.venues?.length >= 4) {
       return;
@@ -759,7 +864,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return null;
 
-    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences, settings.distance);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && Array.isArray(cached.venues) && cached.venues.length >= 4) {
       return this.sliceDeck(cached.venues, deckSize);
@@ -787,7 +892,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return null;
 
-    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences, settings.distance);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && Array.isArray(cached.venues) && cached.venues.length >= 4) {
       return this.sliceDeck(cached.venues, deckSize);
@@ -796,7 +901,7 @@ out center ${limit};`;
     let maxDistanceMiles = 5.0;
     if (settings.distance === 'metro_area') maxDistanceMiles = 15.0;
     else if (settings.distance === 'short_drive') maxDistanceMiles = 5.0;
-    else if (settings.distance === 'walkable') maxDistanceMiles = 2.5;
+    else if (settings.distance === 'walkable') maxDistanceMiles = 1.0;
     else if (typeof settings.distance === 'number') maxDistanceMiles = settings.distance;
 
     const limit = isAll ? 150 : (Number(deckSize) ? Math.min(150, Number(deckSize)) : 150);
@@ -834,7 +939,7 @@ out center ${limit};`;
       }
     }
 
-    const gridKey = this.getGridKey(lat, lng, category);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences, settings.distance);
 
     // 1. Check if real Overpass places are already cached for this grid
     const cached = this.cache.get(gridKey);
@@ -876,10 +981,11 @@ out center ${limit};`;
       }
     }
 
-    const localized = filtered.map((v, idx) => {
+    const localized = filtered.map((v) => {
       let distStr = v.distance;
-      if (lat != null && lng != null) {
-        distStr = `${(0.4 + (idx * 0.3)).toFixed(1)} mi`;
+      if (lat != null && lng != null && v.lat != null && v.lng != null) {
+        const distMiles = calculateDistanceMiles(lat, lng, v.lat, v.lng);
+        distStr = `${distMiles.toFixed(1)} mi`;
       }
       const address = settings.locationName ? `${v.address}, ${settings.locationName}` : v.address;
       return {
@@ -895,20 +1001,93 @@ out center ${limit};`;
     return this.sliceDeck(localized, deckSize);
   }
 
+  /**
+   * Invalidates cached venues for a specific room or location.
+   */
+  invalidateCacheForRoom(settings = {}) {
+    let lat = settings.lat != null ? Number(settings.lat) : null;
+    let lng = settings.lng != null ? Number(settings.lng) : null;
+    const category = (settings.activityCategory || 'dining').toLowerCase();
+
+    if ((lat == null || lng == null) && settings.locationName) {
+      const resolved = this.resolveLocationCoordinates(settings.locationName);
+      if (resolved) {
+        lat = resolved.lat;
+        lng = resolved.lng;
+      }
+    }
+
+    if (lat != null && lng != null) {
+      const gridLat = (Math.round(lat * 50) / 50).toFixed(2);
+      const gridLng = (Math.round(lng * 50) / 50).toFixed(2);
+      const prefix = `grid_${gridLat}_${gridLng}`;
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(prefix)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      for (const key of this.cache.keys()) {
+        if (key.includes(category)) {
+          this.cache.delete(key);
+        }
+      }
+    }
+  }
+
+  /**
+   * Clears the entire venues and geocoding cache.
+   */
+  clearCache() {
+    this.cache.clear();
+  }
+
   sliceDeck(pool, deckSize) {
     if (!pool || pool.length === 0) return [];
-    const isAll = deckSize === 'all' || deckSize == null || deckSize === 'All';
+    const isAll = deckSize === 'all' || deckSize == null || deckSize === 'All' || deckSize === 0;
     const targetLimit = isAll ? pool.length : Math.max(1, Number(deckSize));
     const topLimit = Math.min(3, targetLimit);
-    const candidate = [...pool];
-    const promotedIdx = candidate.findIndex(v => v.isPromoted);
+    const targetIdx = Math.max(0, topLimit - 1);
+    let candidate = [...pool];
 
-    if (promotedIdx >= topLimit) {
-      const [promoted] = candidate.splice(promotedIdx, 1);
-      candidate.splice(topLimit - 1, 0, promoted);
-    } else if (promotedIdx === -1 && candidate.length > 0) {
-      candidate[0].isPromoted = true;
-      candidate[0].sponsorBadge = 'Featured';
+    const hasDistances = candidate.some(v => v && (v.distance != null || v.distanceNum != null));
+    if (hasDistances) {
+      // 1. Sort candidate venues strictly ascending by distance
+      candidate.sort((a, b) => {
+        const distA = a ? (a.distanceNum !== undefined ? a.distanceNum : parseFloat(a.distance)) : NaN;
+        const distB = b ? (b.distanceNum !== undefined ? b.distanceNum : parseFloat(b.distance)) : NaN;
+        if (!isNaN(distA) && !isNaN(distB)) return distA - distB;
+        if (!isNaN(distA)) return -1;
+        if (!isNaN(distB)) return 1;
+        return 0;
+      });
+
+      // 2. Anchor promoted card at index Math.max(0, topLimit - 1)
+      const promotedIdx = candidate.findIndex(v => v && v.isPromoted);
+      if (promotedIdx !== -1 && candidate.length >= topLimit && promotedIdx !== targetIdx) {
+        const [promoted] = candidate.splice(promotedIdx, 1);
+        candidate.splice(targetIdx, 0, promoted);
+      } else if (promotedIdx === -1 && candidate.length > 0) {
+        const pIdx = Math.min(targetIdx, candidate.length - 1);
+        candidate[pIdx] = {
+          ...candidate[pIdx],
+          isPromoted: true,
+          sponsorBadge: 'Featured',
+        };
+      }
+    } else {
+      // Backward compatibility for legacy test fixtures lacking distance attributes
+      const promotedIdx = candidate.findIndex(v => v && v.isPromoted);
+      if (promotedIdx >= topLimit) {
+        const [promoted] = candidate.splice(promotedIdx, 1);
+        candidate.splice(targetIdx, 0, promoted);
+      } else if (promotedIdx === -1 && candidate.length > 0) {
+        candidate[0] = {
+          ...candidate[0],
+          isPromoted: true,
+          sponsorBadge: 'Featured',
+        };
+      }
     }
 
     if (isAll) {

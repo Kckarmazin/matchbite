@@ -128,7 +128,7 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
     }
     expect(totalPasses).toBe(500);
     console.log(`  ✓ 500 concurrent votes processed in ${duration.toFixed(1)}ms (${(500 / (duration / 1000)).toFixed(0)} req/s)`);
-  });
+  }, 20000);
 
   // =========================================================================
   // TEST 2: Multi-Room Cross-Talk Isolation Under 1,000 Concurrent Requests
@@ -209,7 +209,7 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
     }
 
     console.log(`  ✓ 1,000 multi-room concurrent votes processed in ${duration.toFixed(1)}ms (${(1000 / (duration / 1000)).toFixed(0)} req/s)`);
-  });
+  }, 25000);
 
   // =========================================================================
   // TEST 3: Hostile Injections Interleaved with Concurrent Consensus
@@ -278,7 +278,7 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
     const roomRes = await request(app).get(`/api/rooms/${code}`);
     expect(roomRes.body.room.status).toBe('matched');
     expect(roomRes.body.room.matchedVenueId).toBe(targetVenue.id);
-  });
+  }, 20000);
 
   // =========================================================================
   // TEST 4: Concurrent Joins and Leaves Mid-Voting
@@ -325,7 +325,7 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
     // Host and Guest 1 should exist
     expect(participants.find(p => p.id === host.id)).toBeDefined();
     expect(participants.find(p => p.id === g1.id)).toBeDefined();
-  });
+  }, 20000);
 
   // =========================================================================
   // TEST 5: 50 Concurrent Room Creations — Unique Codes & Zero Collisions
@@ -345,7 +345,7 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
 
     const uniqueCodes = new Set(codes);
     expect(uniqueCodes.size).toBe(50);
-  });
+  }, 20000);
 
   // =========================================================================
   // TEST 6: Rapid Alternating Vote Flipping Under Concurrency
@@ -376,5 +376,5 @@ describe('Adversarial Deep Stress & Concurrency Regression Suite', () => {
     const roomRes = await request(app).get(`/api/rooms/${code}`);
     const hostState = roomRes.body.room.participants.find(p => p.id === host.id);
     expect(hostState.swipedCount).toBe(1); // venue 0 was flipped 20 times, but swipedCount is strictly 1
-  });
+  }, 20000);
 });

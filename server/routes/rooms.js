@@ -223,7 +223,7 @@ export function createRoomsRouter(roomStore = globalRoomStore, broadcaster = glo
    * PATCH /api/rooms/:code/settings
    * Updates activity settings (Host only).
    */
-  router.patch('/:code/settings', (req, res) => {
+  router.patch('/:code/settings', async (req, res) => {
     const rawCode = req.params.code;
     const code = normalizeRoomCode(rawCode);
     const { sessionToken, hostKey, participantId } = extractAuthTokens(req);
@@ -237,20 +237,43 @@ export function createRoomsRouter(roomStore = globalRoomStore, broadcaster = glo
     }
 
     try {
+      if (settings && settings.locationName && (settings.lat == null || settings.lng == null)) {
+        if (globalPlacesService && typeof globalPlacesService.resolveLocationCoordinatesAsync === 'function') {
+          try {
+            const coords = await globalPlacesService.resolveLocationCoordinatesAsync(settings.locationName);
+            if (coords) {
+              settings.lat = coords.lat;
+              settings.lng = coords.lng;
+            }
+          } catch {
+            // async geocoding failure ignored
+          }
+        }
+      }
+
       const updatedSettings = roomStore.updateSettings(
         code,
         { participantId, sessionToken, hostKey },
         settings
       );
 
-      // Broadcast settings update to all room participants
+      const room = roomStore.getRoom(code);
+      const deck = room ? room.deck : [];
+
+      // Broadcast settings update and deck update to all room participants
       broadcaster.broadcast(code, 'settings:updated', {
+        settings: updatedSettings,
+      });
+
+      broadcaster.broadcast(code, 'deck:updated', {
+        deck,
         settings: updatedSettings,
       });
 
       return res.status(200).json({
         success: true,
         settings: updatedSettings,
+        deck,
       });
     } catch (err) {
       return res.status(err.statusCode || 500).json({

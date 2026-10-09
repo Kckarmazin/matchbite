@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { generateRoomCode, normalizeRoomCode } from './RoomCode.js';
 import { CONFIG } from '../config.js';
 import { globalBroadcaster } from '../sync/Broadcaster.js';
-import { globalPlacesService } from '../services/PlacesService.js';
+import { globalPlacesService, calculateDistanceMiles } from '../services/PlacesService.js';
 
 export const FORBIDDEN_PROPERTY_NAMES = Object.freeze([
   '__proto__',
@@ -384,6 +384,32 @@ export class RoomStore {
     room.updatedAt = new Date().toISOString();
     room.version++;
 
+    // Invalidate mismatched cache in PlacesService
+    if (globalPlacesService && typeof globalPlacesService.invalidateCacheForRoom === 'function') {
+      globalPlacesService.invalidateCacheForRoom(room.settings);
+    }
+
+    // Rebuild room.deck based on updated settings
+    room.deck = this.getDeckForRoom(room.settings);
+
+    // Update totalCards for all participants
+    if (room.participants) {
+      for (const p of Object.values(room.participants)) {
+        if (p) {
+          p.totalCards = room.deck.length;
+        }
+      }
+    }
+
+    // Broadcast deck:updated via broadcaster
+    const broadcaster = this.broadcaster || globalBroadcaster;
+    if (broadcaster && typeof broadcaster.broadcast === 'function') {
+      broadcaster.broadcast(code, 'deck:updated', {
+        deck: room.deck,
+        settings: room.settings,
+      });
+    }
+
     if (process.env.NODE_ENV !== 'test' && globalPlacesService && typeof globalPlacesService.preloadLiveVenues === 'function') {
       globalPlacesService.preloadLiveVenues(room.settings).catch(() => {});
     }
@@ -413,15 +439,16 @@ export class RoomStore {
    * If live OpenStreetMap venues were preloaded/cached for this grid, serves them immediately.
    */
   getDeckForRoom(settings = {}) {
-    // If live venues are pre-cached for this grid/location, use them
+    // If live venues are pre-cached for this grid/location, use them as candidate source
+    let candidateSource = null;
     if (globalPlacesService && typeof globalPlacesService.getCachedLiveVenues === 'function') {
-      const live = globalPlacesService.getCachedLiveVenues(settings);
+      const live = globalPlacesService.getCachedLiveVenues({ ...settings, deckSize: 'all' });
       if (Array.isArray(live) && live.length >= 4) {
-        return live;
+        candidateSource = live;
       }
     }
 
-    const allVenues = loadVenues();
+    const allVenues = candidateSource || loadVenues();
     const category = (settings.activityCategory || 'dining').toLowerCase();
     const priceRange = Array.isArray(settings.priceRange) && settings.priceRange.length > 0
       ? settings.priceRange
@@ -437,17 +464,36 @@ export class RoomStore {
     else if (distanceSetting === 'metro_area') maxDistance = 15.0;
     else if (typeof distanceSetting === 'number') maxDistance = distanceSetting;
 
-    // Helper: parse numeric miles from distance string (e.g. "0.6 mi" -> 0.6)
+    const originLat = settings.lat != null ? Number(settings.lat) : null;
+    const originLng = settings.lng != null ? Number(settings.lng) : null;
+
+    // Helper: calculate or parse numeric miles
     const getMiles = (v) => {
+      if (originLat != null && originLng != null && v.lat != null && v.lng != null) {
+        return calculateDistanceMiles(originLat, originLng, v.lat, v.lng);
+      }
       const parsed = parseFloat(v.distance);
       return isNaN(parsed) ? 1.0 : parsed;
     };
 
+    const localizedVenues = allVenues.map(v => {
+      const miles = getMiles(v);
+      return {
+        ...v,
+        distance: `${miles.toFixed(1)} mi`,
+        distanceNum: miles,
+      };
+    });
+
+    const getVenueMiles = (v) => (v.distanceNum !== undefined ? v.distanceNum : (parseFloat(v.distance) || 1.0));
+
     // 1. Filter by category
-    let categoryFiltered = allVenues;
+    let categoryFiltered = localizedVenues;
     if (category && category !== 'all') {
-      categoryFiltered = allVenues.filter(v => {
+      categoryFiltered = localizedVenues.filter(v => {
+        if (!v.category && candidateSource) return true;
         const vCat = (v.category || '').toLowerCase();
+        if (!vCat && candidateSource) return true;
         if (vCat === category) return true;
         if (category === 'activities' && vCat === 'entertainment') return true;
         if (category === 'entertainment' && vCat === 'activities') return true;
@@ -455,9 +501,25 @@ export class RoomStore {
       });
     }
 
-    // 2. Filter by distance
-    const distFiltered = categoryFiltered.filter(v => getMiles(v) <= maxDistance);
-    const distPool = distFiltered.length >= 4 ? distFiltered : categoryFiltered;
+    // Sort category venues ascending by distance
+    const sortedCategory = [...categoryFiltered].sort((a, b) => getVenueMiles(a) - getVenueMiles(b));
+
+    // 2. Strictly enforce radius bounds & proximity fallback padding
+    const inRadius = sortedCategory.filter(v => getVenueMiles(v) <= maxDistance);
+    let distPool;
+    if (inRadius.length >= 4) {
+      distPool = inRadius;
+    } else {
+      // Proximity fallback padding: retain all in-radius venues first,
+      // pad with closest available out-of-radius spots from sortedCategory to reach at least 4 spots
+      const inRadiusIds = new Set(inRadius.map(v => v.id));
+      const outOfRadius = sortedCategory.filter(v => !inRadiusIds.has(v.id));
+      distPool = [...inRadius];
+      for (const v of outOfRadius) {
+        if (distPool.length >= 4) break;
+        distPool.push(v);
+      }
+    }
 
     // 3. Filter by price tier
     const priceFiltered = distPool.filter(v => priceRange.includes(v.priceTier));
@@ -475,8 +537,9 @@ export class RoomStore {
       }
     }
 
-    // 3c. Optional Cuisine Preferences filter (e.g. Italian, Mexican, Pizza, Asian, Burgers, etc.)
-    if (Array.isArray(settings.cuisinePreferences) && settings.cuisinePreferences.length > 0) {
+    // 3c. Optional Cuisine Preferences filter
+    const hasCuisineFilter = Array.isArray(settings.cuisinePreferences) && settings.cuisinePreferences.length > 0;
+    if (hasCuisineFilter) {
       const cuisineTerms = settings.cuisinePreferences.map(c => String(c).toLowerCase().trim());
       const cuisineFiltered = candidatePool.filter(v => {
         const text = `${v.name} ${v.cuisine} ${v.description || ''} ${(v.tags || []).join(' ')}`.toLowerCase();
@@ -488,50 +551,75 @@ export class RoomStore {
           return text.includes(term);
         });
       });
-      if (cuisineFiltered.length >= 4) {
+      if (cuisineFiltered.length >= 4 || (isAll && cuisineFiltered.length > 0)) {
         candidatePool = cuisineFiltered;
       }
     }
 
-    // 4. Backfill if pool is smaller than deckSize
-    if (candidatePool.length < deckSize) {
+    // 4. Backfill if pool is smaller than deckSize (only when numeric deckSize is requested or pool < 4)
+    if (!isAll ? candidatePool.length < deckSize : candidatePool.length < 4) {
+      const targetCount = isAll ? 4 : deckSize;
       const existingIds = new Set(candidatePool.map(v => v.id));
-      // First backfill from same category
-      const remainingCategory = categoryFiltered.filter(v => !existingIds.has(v.id));
+
+      // First backfill from same category (sorted ascending by distance)
+      const remainingCategory = sortedCategory.filter(v => !existingIds.has(v.id));
       for (const v of remainingCategory) {
-        if (candidatePool.length >= deckSize) break;
+        if (candidatePool.length >= targetCount) break;
+        if (originLat != null && originLng != null && candidatePool.length >= 4 && getVenueMiles(v) > maxDistance) {
+          continue;
+        }
         candidatePool.push(v);
         existingIds.add(v.id);
       }
-      // Then backfill from any category
-      if (candidatePool.length < deckSize) {
-        const remainingAll = allVenues.filter(v => !existingIds.has(v.id));
+
+      // Then backfill from all venues (sorted ascending by distance)
+      if (candidatePool.length < targetCount) {
+        const sortedAll = [...localizedVenues].sort((a, b) => getVenueMiles(a) - getVenueMiles(b));
+        const remainingAll = sortedAll.filter(v => !existingIds.has(v.id));
         for (const v of remainingAll) {
-          if (candidatePool.length >= deckSize) break;
+          if (candidatePool.length >= targetCount) break;
+          if (originLat != null && originLng != null && candidatePool.length >= 4 && getVenueMiles(v) > maxDistance) {
+            continue;
+          }
           candidatePool.push(v);
           existingIds.add(v.id);
         }
       }
     }
 
-    // 5. Ensure at least one promoted venue is present within the top min(3, deckSize) positions (R4 monetization requirement)
-    const topLimit = Math.min(3, deckSize);
-    const promotedIdx = candidatePool.findIndex(v => v && v.isPromoted);
+    // 4b. Ensure candidatePool is sorted ascending by distance
+    candidatePool.sort((a, b) => getVenueMiles(a) - getVenueMiles(b));
 
-    if (promotedIdx >= topLimit) {
-      // Promoted venue exists in pool but is outside top min(3, deckSize)
-      const [promotedVenue] = candidatePool.splice(promotedIdx, 1);
-      const targetIdx = Math.max(0, topLimit - 1);
-      candidatePool.splice(targetIdx, 0, promotedVenue);
-    } else if (promotedIdx === -1) {
-      // No promoted venue in pool; find from allVenues (prefer matching category)
+    // 5. Ensure promoted venue placement at index Math.max(0, topLimit - 1) (index 2 for topLimit=3)
+    const effectiveLimit = isAll ? candidatePool.length : Math.min(candidatePool.length, deckSize);
+    const topLimit = Math.min(3, effectiveLimit);
+    const targetIdx = Math.max(0, topLimit - 1);
+    let promotedIdx = candidatePool.findIndex(v => v && v.isPromoted);
+
+    if (promotedIdx === -1) {
+      // Find promoted venue from matching category first, then all
       const promotedVenue =
-        allVenues.find(v => v && (v.category || '').toLowerCase() === category && v.isPromoted) ||
-        allVenues.find(v => v && v.isPromoted);
+        localizedVenues.find(v => v && (v.category || '').toLowerCase() === category && (inRadius.length < 4 || getVenueMiles(v) <= maxDistance) && v.isPromoted) ||
+        localizedVenues.find(v => v && (inRadius.length < 4 || getVenueMiles(v) <= maxDistance) && v.isPromoted) ||
+        localizedVenues.find(v => v && (v.category || '').toLowerCase() === category && v.isPromoted) ||
+        localizedVenues.find(v => v && v.isPromoted);
       if (promotedVenue) {
-        const insertIdx = Math.max(0, Math.min(topLimit - 1, candidatePool.length));
-        candidatePool.splice(insertIdx, 0, promotedVenue);
+        const miles = getMiles(promotedVenue);
+        const localizedPromoted = {
+          ...promotedVenue,
+          distance: `${miles.toFixed(1)} mi`,
+          distanceNum: miles,
+        };
+        const insertIdx = Math.max(0, Math.min(targetIdx, candidatePool.length));
+        candidatePool.splice(insertIdx, 0, localizedPromoted);
+      } else if (candidatePool.length > 0) {
+        const pIdx = Math.min(targetIdx, candidatePool.length - 1);
+        candidatePool[pIdx].isPromoted = true;
+        candidatePool[pIdx].sponsorBadge = 'Featured';
       }
+    } else if (candidatePool.length >= topLimit && promotedIdx !== targetIdx) {
+      const [promotedVenue] = candidatePool.splice(promotedIdx, 1);
+      candidatePool.splice(targetIdx, 0, promotedVenue);
     }
 
     return isAll ? candidatePool : candidatePool.slice(0, deckSize);
