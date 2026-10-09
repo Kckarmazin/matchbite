@@ -17,13 +17,28 @@ const CATEGORIES = [
   { id: 'coffee', label: '☕ Cafe & Brunch', desc: 'Relaxed coffee' },
 ];
 
-const DIETARY_OPTIONS = [
+export const DIETARY_OPTIONS = [
   { id: 'vegetarian', label: '🌱 Vegetarian' },
   { id: 'vegan', label: '🥑 Vegan' },
   { id: 'gluten_free', label: '🌾 Gluten-Free' },
   { id: 'halal', label: '🥩 Halal' },
   { id: 'patio', label: '☀️ Patio' },
   { id: 'late_night', label: '🌙 Open Late' },
+];
+
+export const CUISINE_OPTIONS = [
+  { id: 'pizza', label: '🍕 Pizza' },
+  { id: 'american', label: '🍔 Burgers & American' },
+  { id: 'mexican', label: '🌮 Mexican' },
+  { id: 'italian', label: '🍝 Italian' },
+  { id: 'japanese', label: '🍣 Sushi & Japanese' },
+  { id: 'asian', label: '🥡 Asian & Chinese' },
+  { id: 'thai', label: '🍜 Thai & Vietnamese' },
+  { id: 'indian', label: '🍛 Indian' },
+  { id: 'mediterranean', label: '🥙 Mediterranean' },
+  { id: 'seafood', label: '🦞 Seafood' },
+  { id: 'steakhouse', label: '🥩 Steaks & BBQ' },
+  { id: 'cafe', label: '☕ Cafe & Brunch' },
 ];
 
 export function CreateRoom({ onSwitchToJoin }) {
@@ -33,6 +48,7 @@ export function CreateRoom({ onSwitchToJoin }) {
   const [hostAvatar, setHostAvatar] = useState(participant.avatar || '🍕');
   const [groupType, setGroupType] = useState('friends');
   const [activityCategory, setActivityCategory] = useState('dining');
+  const [cuisinePreferences, setCuisinePreferences] = useState([]);
   const [priceRange, setPriceRange] = useState([1, 2]);
   const [distance, setDistance] = useState('short_drive');
   const [deckSize, setDeckSize] = useState('all');
@@ -41,6 +57,12 @@ export function CreateRoom({ onSwitchToJoin }) {
   const [coordinates, setCoordinates] = useState({ lat: null, lng: null });
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
+
+  const toggleCuisine = (id) => {
+    setCuisinePreferences((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
 
   const toggleDietary = (id) => {
     setDietaryFilters((prev) =>
@@ -156,6 +178,7 @@ export function CreateRoom({ onSwitchToJoin }) {
       hostAvatar,
       groupType,
       activityCategory,
+      cuisinePreferences,
       priceRange,
       distance,
       deckSize: deckSize === 'all' ? 'all' : Number(deckSize),
@@ -242,6 +265,54 @@ export function CreateRoom({ onSwitchToJoin }) {
             ))}
           </div>
         </div>
+
+        {/* Cuisine / Food Type (When Dining is selected) */}
+        {activityCategory === 'dining' && (
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Utensils size={16} /> Food & Cuisine (Optional)
+              </label>
+              {cuisinePreferences.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCuisinePreferences([])}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear (All Cuisines)
+                </button>
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 8px 0' }}>
+              {cuisinePreferences.length === 0
+                ? 'Showing all food types. Tap to filter to specific foods (e.g. Pizza, Mexican, Sushi):'
+                : `Filtered to ${cuisinePreferences.length} food type${cuisinePreferences.length > 1 ? 's' : ''}:`}
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {CUISINE_OPTIONS.map((item) => {
+                const isActive = cuisinePreferences.includes(item.id);
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={`chip-btn ${isActive ? 'active' : ''}`}
+                    style={{ padding: '6px 12px', fontSize: '0.82rem' }}
+                    onClick={() => toggleCuisine(item.id)}
+                  >
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Price Tier */}
         <div className="form-group">

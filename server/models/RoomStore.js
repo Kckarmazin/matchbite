@@ -475,6 +475,24 @@ export class RoomStore {
       }
     }
 
+    // 3c. Optional Cuisine Preferences filter (e.g. Italian, Mexican, Pizza, Asian, Burgers, etc.)
+    if (Array.isArray(settings.cuisinePreferences) && settings.cuisinePreferences.length > 0) {
+      const cuisineTerms = settings.cuisinePreferences.map(c => String(c).toLowerCase().trim());
+      const cuisineFiltered = candidatePool.filter(v => {
+        const text = `${v.name} ${v.cuisine} ${v.description || ''} ${(v.tags || []).join(' ')}`.toLowerCase();
+        return cuisineTerms.some(term => {
+          if (term === 'american') return text.includes('american') || text.includes('burger') || text.includes('grill') || text.includes('bbq');
+          if (term === 'asian') return text.includes('asian') || text.includes('chinese') || text.includes('thai') || text.includes('noodle');
+          if (term === 'japanese') return text.includes('japanese') || text.includes('sushi') || text.includes('ramen');
+          if (term === 'steakhouse') return text.includes('steak') || text.includes('bbq') || text.includes('barbecue');
+          return text.includes(term);
+        });
+      });
+      if (cuisineFiltered.length >= 4) {
+        candidatePool = cuisineFiltered;
+      }
+    }
+
     // 4. Backfill if pool is smaller than deckSize
     if (candidatePool.length < deckSize) {
       const existingIds = new Set(candidatePool.map(v => v.id));

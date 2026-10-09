@@ -109,11 +109,14 @@ export class PlacesService {
     this.cacheTtlMs = 24 * 60 * 60 * 1000;
   }
 
-  getGridKey(lat, lng, category = 'dining') {
+  getGridKey(lat, lng, category = 'dining', cuisinePreferences = []) {
     if (lat == null || lng == null) return `global_${category}`;
     const gridLat = (Math.round(lat * 50) / 50).toFixed(2);
     const gridLng = (Math.round(lng * 50) / 50).toFixed(2);
-    return `grid_${gridLat}_${gridLng}_${category.toLowerCase()}`;
+    const cuisineSuffix = Array.isArray(cuisinePreferences) && cuisinePreferences.length > 0
+      ? `_${cuisinePreferences.slice().sort().join('-')}`
+      : '';
+    return `grid_${gridLat}_${gridLng}_${category.toLowerCase()}${cuisineSuffix}`;
   }
 
   loadSeedVenues() {
@@ -392,7 +395,7 @@ out center ${limit};`;
   /**
    * Fetches real live places from Google Places API (New & Legacy Nearby Search fallback).
    */
-  async fetchLiveFromGoogle({ lat, lng, category = 'dining', maxDistanceMiles = 5.0, limit = 25, apiKey = null }) {
+  async fetchLiveFromGoogle({ lat, lng, category = 'dining', cuisinePreferences = [], maxDistanceMiles = 5.0, limit = 25, apiKey = null }) {
     const key = apiKey || process.env.GOOGLE_MAPS_API_KEY || process.env.PLACES_API_KEY;
     if (!key) return null;
 
@@ -413,18 +416,46 @@ out center ${limit};`;
 
     // 1. Try Google Places API (New) - v1/places:searchNearby
     try {
-      const typeGroups = [[newApiType]];
-      if (limit > 20 || limit === 'all') {
-        if (category === 'dining') {
-          typeGroups.push(['pizza_restaurant', 'american_restaurant', 'italian_restaurant', 'mexican_restaurant', 'seafood_restaurant']);
-          typeGroups.push(['bar', 'cafe', 'fast_food_restaurant', 'bistro']);
-        } else if (category === 'bars' || category === 'nightlife') {
-          typeGroups.push(['pub', 'night_club']);
-          typeGroups.push(['brewery', 'wine_bar']);
-        } else if (category === 'coffee') {
-          typeGroups.push(['coffee_shop', 'bakery']);
-        } else if (category === 'entertainment' || category === 'activities') {
-          typeGroups.push(['bowling_alley', 'amusement_center']);
+      const typeGroups = [];
+      const CUISINE_MAP = {
+        pizza: ['pizza_restaurant', 'italian_restaurant'],
+        italian: ['italian_restaurant', 'pizza_restaurant'],
+        mexican: ['mexican_restaurant'],
+        american: ['american_restaurant', 'hamburger_restaurant', 'steak_house'],
+        japanese: ['japanese_restaurant', 'sushi_restaurant', 'ramen_restaurant'],
+        asian: ['asian_restaurant', 'chinese_restaurant', 'thai_restaurant', 'japanese_restaurant'],
+        seafood: ['seafood_restaurant'],
+        steakhouse: ['steak_house', 'american_restaurant', 'barbecue_restaurant'],
+        mediterranean: ['mediterranean_restaurant', 'greek_restaurant', 'middle_eastern_restaurant'],
+        indian: ['indian_restaurant'],
+        thai: ['thai_restaurant', 'asian_restaurant'],
+        cafe: ['cafe', 'coffee_shop', 'bakery', 'breakfast_restaurant', 'brunch_restaurant'],
+      };
+
+      if (Array.isArray(cuisinePreferences) && cuisinePreferences.length > 0) {
+        for (const c of cuisinePreferences) {
+          const mapped = CUISINE_MAP[c.toLowerCase()];
+          if (mapped) typeGroups.push(mapped);
+        }
+      }
+
+      if (typeGroups.length === 0) {
+        typeGroups.push([newApiType]);
+        if (limit > 20 || limit === 'all') {
+          if (category === 'dining') {
+            typeGroups.push(['pizza_restaurant', 'american_restaurant', 'italian_restaurant']);
+            typeGroups.push(['mexican_restaurant', 'seafood_restaurant', 'steak_house']);
+            typeGroups.push(['asian_restaurant', 'japanese_restaurant', 'sushi_restaurant', 'chinese_restaurant', 'thai_restaurant', 'indian_restaurant']);
+            typeGroups.push(['mediterranean_restaurant', 'french_restaurant', 'greek_restaurant']);
+            typeGroups.push(['bar', 'pub', 'bistro', 'cafe', 'fast_food_restaurant', 'brunch_restaurant']);
+          } else if (category === 'bars' || category === 'nightlife') {
+            typeGroups.push(['pub', 'night_club']);
+            typeGroups.push(['brewery', 'wine_bar']);
+          } else if (category === 'coffee') {
+            typeGroups.push(['coffee_shop', 'bakery']);
+          } else if (category === 'entertainment' || category === 'activities') {
+            typeGroups.push(['bowling_alley', 'amusement_center']);
+          }
         }
       }
 
@@ -605,7 +636,7 @@ out center ${limit};`;
    * Prefers Google Places API if GOOGLE_MAPS_API_KEY or PLACES_API_KEY is present.
    * Gracefully falls back to OpenStreetMap Overpass (0 cost, no API keys).
    */
-  async fetchLivePlaces({ lat, lng, category = 'dining', maxDistanceMiles = 5.0, limit = 150 }) {
+  async fetchLivePlaces({ lat, lng, category = 'dining', cuisinePreferences = [], maxDistanceMiles = 5.0, limit = 150 }) {
     if (process.env.NODE_ENV === 'test') {
       return [];
     }
@@ -616,6 +647,7 @@ out center ${limit};`;
           lat,
           lng,
           category,
+          cuisinePreferences,
           maxDistanceMiles,
           limit,
         });
@@ -651,7 +683,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return;
 
-    const gridKey = this.getGridKey(lat, lng, category);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
     if (this.cache.has(gridKey)) return;
 
     let maxDistanceMiles = 5.0;
@@ -663,7 +695,7 @@ out center ${limit};`;
     const limit = settings.deckSize === 'all' ? 150 : (Number(settings.deckSize) ? Math.min(150, Number(settings.deckSize)) : 150);
 
     try {
-      const places = await this.fetchLivePlaces({ lat, lng, category, maxDistanceMiles, limit });
+      const places = await this.fetchLivePlaces({ lat, lng, category, cuisinePreferences: settings.cuisinePreferences, maxDistanceMiles, limit });
       if (places && places.length >= 4) {
         this.cache.set(gridKey, {
           venues: places,
@@ -696,7 +728,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return;
 
-    const gridKey = this.getGridKey(lat, lng, category);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && cached.venues?.length >= 4) {
       return;
@@ -727,7 +759,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return null;
 
-    const gridKey = this.getGridKey(lat, lng, category);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && Array.isArray(cached.venues) && cached.venues.length >= 4) {
       return this.sliceDeck(cached.venues, deckSize);
@@ -755,7 +787,7 @@ out center ${limit};`;
 
     if (lat == null || lng == null) return null;
 
-    const gridKey = this.getGridKey(lat, lng, category);
+    const gridKey = this.getGridKey(lat, lng, category, settings.cuisinePreferences);
     const cached = this.cache.get(gridKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTtlMs && Array.isArray(cached.venues) && cached.venues.length >= 4) {
       return this.sliceDeck(cached.venues, deckSize);
@@ -770,7 +802,7 @@ out center ${limit};`;
     const limit = isAll ? 150 : (Number(deckSize) ? Math.min(150, Number(deckSize)) : 150);
 
     try {
-      const live = await this.fetchLivePlaces({ lat, lng, category, maxDistanceMiles, limit });
+      const live = await this.fetchLivePlaces({ lat, lng, category, cuisinePreferences: settings.cuisinePreferences, maxDistanceMiles, limit });
       if (live && live.length >= 4) {
         this.cache.set(gridKey, {
           venues: live,
