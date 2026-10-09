@@ -487,9 +487,12 @@ out center ${limit};`;
             };
           });
         }
+      } else {
+        const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+        console.warn(`[PlacesService] Google Places API (New) error ${res.status}:`, errText);
       }
-    } catch {
-      // Fall through to Legacy search
+    } catch (err) {
+      console.warn('[PlacesService] Google Places API (New) request threw:', err.message);
     }
 
     // 2. Fallback to Google Places Legacy Nearby Search
@@ -502,6 +505,9 @@ out center ${limit};`;
 
       if (res.ok) {
         const data = await res.json();
+        if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+          console.warn(`[PlacesService] Google Places Legacy status: ${data.status} - ${data.error_message || ''}`);
+        }
         if (data && Array.isArray(data.results) && data.results.length > 0) {
           return data.results.slice(0, limit).map((place, idx) => {
             const name = place.name || 'Local Spot';
@@ -546,9 +552,12 @@ out center ${limit};`;
             };
           });
         }
+      } else {
+        const errText = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+        console.warn(`[PlacesService] Google Places Legacy error ${res.status}:`, errText);
       }
-    } catch {
-      // Fall through to Overpass
+    } catch (err) {
+      console.warn('[PlacesService] Google Places Legacy request threw:', err.message);
     }
 
     return null;

@@ -39,6 +39,55 @@ export function createApp(options = {}) {
     });
   });
 
+  // Diagnostics endpoint to verify Google Places API key and permissions
+  app.get('/api/places/diagnostics', async (req, res) => {
+    const key = process.env.GOOGLE_MAPS_API_KEY || process.env.PLACES_API_KEY || CONFIG.GOOGLE_MAPS_API_KEY;
+    if (!key) {
+      return res.status(200).json({
+        success: false,
+        hasGoogleKey: false,
+        message: 'No GOOGLE_MAPS_API_KEY found in environment variables. Falling back to OpenStreetMap.',
+      });
+    }
+
+    try {
+      const testRes = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': key,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.photos',
+        },
+        body: JSON.stringify({
+          includedTypes: ['restaurant'],
+          maxResultCount: 1,
+          locationRestriction: {
+            circle: {
+              center: { latitude: 40.7580, longitude: -73.9855 },
+              radius: 1000,
+            },
+          },
+        }),
+      });
+
+      const data = await testRes.json().catch(() => ({}));
+      return res.status(200).json({
+        success: testRes.ok,
+        hasGoogleKey: true,
+        keyLength: key.length,
+        googleHttpStatus: testRes.status,
+        googleOk: testRes.ok,
+        googleResponse: data,
+      });
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        hasGoogleKey: true,
+        error: err.message,
+      });
+    }
+  });
+
   // Geocoding endpoint for zip codes & cities (zero API keys)
   app.get('/api/places/geocode', async (req, res) => {
     try {
