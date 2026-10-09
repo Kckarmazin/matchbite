@@ -75,6 +75,7 @@ export class RoomStore {
     lat = null,
     lng = null,
     dietaryFilters = [],
+    minRating = 4.0,
   }) {
     if (!hostName || typeof hostName !== 'string' || !hostName.trim()) {
       throw new Error('hostName is required');
@@ -125,6 +126,7 @@ export class RoomStore {
         lat: lat != null ? Number(lat) : null,
         lng: lng != null ? Number(lng) : null,
         dietaryFilters: Array.isArray(dietaryFilters) ? dietaryFilters : [],
+        minRating: minRating != null ? Number(minRating) : 4.0,
       },
       hostId: hostParticipantId,
       hostKey,
@@ -363,6 +365,7 @@ export class RoomStore {
       'lat',
       'lng',
       'dietaryFilters',
+      'minRating',
     ];
 
     for (const key of allowedKeys) {
@@ -375,6 +378,8 @@ export class RoomStore {
               Math.max(1, Math.min(25, Number(newSettings.deckSize) || CONFIG.DEFAULT_DECK_SIZE || 12))
             );
           }
+        } else if (key === 'minRating') {
+          room.settings.minRating = Number(newSettings.minRating);
         } else {
           room.settings[key] = newSettings[key];
         }
@@ -556,6 +561,18 @@ export class RoomStore {
       }
     }
 
+    // 3d. Optional Minimum Rating filter (Default: 4.0+)
+    const minRating = settings.minRating != null ? Number(settings.minRating) : 4.0;
+    if (minRating > 0) {
+      const ratingFiltered = candidatePool.filter(v => {
+        const r = typeof v.rating === 'number' ? v.rating : parseFloat(v.rating);
+        return !isNaN(r) && r >= minRating;
+      });
+      if (ratingFiltered.length >= 4 || isAll) {
+        candidatePool = ratingFiltered;
+      }
+    }
+
     // 4. Backfill if pool is smaller than deckSize (only when numeric deckSize is requested or pool < 4)
     if (!isAll ? candidatePool.length < deckSize : candidatePool.length < 4) {
       const targetCount = isAll ? 4 : deckSize;
@@ -566,6 +583,9 @@ export class RoomStore {
       for (const v of remainingCategory) {
         if (candidatePool.length >= targetCount) break;
         if (originLat != null && originLng != null && candidatePool.length >= 4 && getVenueMiles(v) > maxDistance) {
+          continue;
+        }
+        if (minRating > 0 && candidatePool.length >= 4 && (Number(v.rating) || 0) < minRating) {
           continue;
         }
         candidatePool.push(v);
@@ -579,6 +599,9 @@ export class RoomStore {
         for (const v of remainingAll) {
           if (candidatePool.length >= targetCount) break;
           if (originLat != null && originLng != null && candidatePool.length >= 4 && getVenueMiles(v) > maxDistance) {
+            continue;
+          }
+          if (minRating > 0 && candidatePool.length >= 4 && (Number(v.rating) || 0) < minRating) {
             continue;
           }
           candidatePool.push(v);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import { AVATAR_OPTIONS } from '../../utils/session.js';
-import { Sparkles, Users, Utensils, DollarSign, MapPin, Navigation, Compass, Layers, Leaf, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Users, Utensils, DollarSign, MapPin, Navigation, Compass, Layers, Leaf, SlidersHorizontal, ChevronDown, ChevronUp, Star } from 'lucide-react';
 
 const GROUP_TYPES = [
   { id: 'couples', label: '👫 Date Night', desc: 'Romantic spots' },
@@ -53,8 +53,10 @@ export function CreateRoom({ onSwitchToJoin }) {
   const [priceRange, setPriceRange] = useState([1, 2]);
   const [distance, setDistance] = useState('short_drive');
   const [deckSize, setDeckSize] = useState('all');
+  const [minRating, setMinRating] = useState(4.0);
   const [dietaryFilters, setDietaryFilters] = useState([]);
   const [locationName, setLocationName] = useState('');
+  const [locationError, setLocationError] = useState('');
   const [coordinates, setCoordinates] = useState({ lat: null, lng: null });
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState(null);
@@ -87,6 +89,7 @@ export function CreateRoom({ onSwitchToJoin }) {
       setLocationStatus('GPS not supported');
       return;
     }
+    setLocationError('');
     setIsDetectingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -111,7 +114,9 @@ export function CreateRoom({ onSwitchToJoin }) {
   const handleLocationChange = async (val) => {
     setLocationName(val);
     const clean = val.trim();
-    if (!clean) {
+    if (clean) {
+      setLocationError('');
+    } else {
       setCoordinates({ lat: null, lng: null });
       setLocationStatus(null);
       return;
@@ -139,6 +144,7 @@ export function CreateRoom({ onSwitchToJoin }) {
 
   const handleSelectCityChip = async (city) => {
     setLocationName(city);
+    setLocationError('');
     setLocationStatus('resolving');
     try {
       const res = await fetch(`/api/places/geocode?query=${encodeURIComponent(city)}`);
@@ -157,6 +163,11 @@ export function CreateRoom({ onSwitchToJoin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!hostName.trim()) return;
+
+    if (!locationName.trim()) {
+      setLocationError('Please enter a location (city, zip code, or tap GPS / a city below).');
+      return;
+    }
 
     let finalLat = coordinates.lat;
     let finalLng = coordinates.lng;
@@ -184,9 +195,10 @@ export function CreateRoom({ onSwitchToJoin }) {
       distance,
       deckSize: deckSize === 'all' ? 'all' : Number(deckSize),
       dietaryFilters,
-      locationName: locationName.trim() || undefined,
+      locationName: locationName.trim(),
       lat: finalLat,
       lng: finalLng,
+      minRating: Number(minRating) || 4.0,
     });
   };
 
@@ -271,6 +283,77 @@ export function CreateRoom({ onSwitchToJoin }) {
           </div>
         </div>
 
+        {/* Location & GPS (Required) */}
+        <div className="form-group">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Navigation size={16} /> Location / City <span style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700 }}>*Required</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleDetectLocation}
+              disabled={isDetectingLocation}
+              style={{
+                background: 'rgba(255, 90, 95, 0.1)',
+                border: '1px solid rgba(255, 90, 95, 0.3)',
+                color: 'var(--primary)',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <Compass size={13} /> {isDetectingLocation ? 'Detecting...' : '📍 Use My GPS'}
+            </button>
+          </div>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="e.g. 78704, Austin, or 90210 (or tap GPS / cities below)"
+            value={locationName}
+            onChange={(e) => handleLocationChange(e.target.value)}
+            required
+            style={{ fontSize: '16px', borderColor: locationError ? '#EF4444' : undefined }}
+          />
+
+          {locationError && (
+            <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#EF4444', fontWeight: 600 }}>
+              ⚠️ {locationError}
+            </div>
+          )}
+
+          {locationStatus === 'resolving' && (
+            <div style={{ marginTop: '6px', fontSize: '0.82rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span>🔍 Resolving zip code & coordinates...</span>
+            </div>
+          )}
+
+          {locationStatus && locationStatus.startsWith('detected:') && (
+            <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#10B981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span>✓ Located: {locationStatus.replace('detected:', '')} — Live local spots ready!</span>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+            {['Austin, TX', 'New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Miami, FL'].map((city) => (
+              <button
+                type="button"
+                key={city}
+                className={`chip-btn ${locationName === city ? 'active' : ''}`}
+                style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                onClick={() => handleSelectCityChip(city)}
+                aria-pressed={locationName === city}
+              >
+                {city.split(',')[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Progressive Disclosure: Collapsible "Adjust Preferences" Drawer */}
         <div style={{ marginTop: '16px', marginBottom: '16px' }}>
           <button
@@ -291,13 +374,13 @@ export function CreateRoom({ onSwitchToJoin }) {
               color: 'var(--text-main)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <SlidersHorizontal size={16} color="var(--primary)" />
-              <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>
-                {showPreferencesDrawer ? 'Adjust Preferences (Expanded)' : 'Adjust Preferences (Cuisine, Price, Radius, Deck)'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <SlidersHorizontal size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+              <span style={{ fontWeight: 600, fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
+                Adjust Preferences
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, flexShrink: 0 }}>
               <span>{showPreferencesDrawer ? 'Hide Filters' : 'Customize'}</span>
               {showPreferencesDrawer ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
@@ -305,6 +388,8 @@ export function CreateRoom({ onSwitchToJoin }) {
 
           {!showPreferencesDrawer && (
             <div style={{ marginTop: '8px', padding: '0 4px', fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <span>⭐ {minRating > 0 ? `${minRating}+ Stars` : 'Any Rating'}</span>
+              <span>•</span>
               <span>🌟 {cuisinePreferences.length > 0 ? `${cuisinePreferences.length} cuisines` : 'All Cuisines'}</span>
               <span>•</span>
               <span>💵 {priceRange.map(p => '$'.repeat(p)).join(', ')}</span>
@@ -426,65 +511,27 @@ export function CreateRoom({ onSwitchToJoin }) {
               </div>
             </div>
 
-            {/* Location / Area */}
+            {/* Minimum Rating Filter */}
             <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Navigation size={16} /> Location / City
-                </label>
-                <button
-                  type="button"
-                  onClick={handleDetectLocation}
-                  disabled={isDetectingLocation}
-                  style={{
-                    background: 'rgba(255, 90, 95, 0.1)',
-                    border: '1px solid rgba(255, 90, 95, 0.3)',
-                    color: 'var(--primary)',
-                    padding: '4px 10px',
-                    borderRadius: '999px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Compass size={13} /> {isDetectingLocation ? 'Detecting...' : '📍 Use My GPS'}
-                </button>
-              </div>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. 78704, Austin, or 90210 (or tap GPS / cities below)"
-                value={locationName}
-                onChange={(e) => handleLocationChange(e.target.value)}
-                style={{ fontSize: '16px' }}
-              />
-
-              {locationStatus === 'resolving' && (
-                <div style={{ marginTop: '6px', fontSize: '0.82rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>🔍 Resolving zip code & coordinates...</span>
-                </div>
-              )}
-
-              {locationStatus && locationStatus.startsWith('detected:') && (
-                <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#10B981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>✓ Located: {locationStatus.replace('detected:', '')} — Live local spots ready!</span>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
-                {['Austin, TX', 'New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Miami, FL'].map((city) => (
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Star size={16} fill="#F59E0B" color="#F59E0B" /> Minimum Rating
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { id: 0, label: 'Any Rating' },
+                  { id: 3.5, label: '★ 3.5+' },
+                  { id: 4.0, label: '★ 4.0+ (Default)' },
+                  { id: 4.5, label: '★ 4.5+' },
+                ].map((r) => (
                   <button
                     type="button"
-                    key={city}
-                    className={`chip-btn ${locationName === city ? 'active' : ''}`}
-                    style={{ padding: '4px 10px', fontSize: '0.78rem' }}
-                    onClick={() => handleSelectCityChip(city)}
-                    aria-pressed={locationName === city}
+                    key={r.id}
+                    className={`chip-btn ${minRating === r.id ? 'active' : ''}`}
+                    style={{ flex: 1, padding: '10px 4px', fontSize: '0.82rem' }}
+                    onClick={() => setMinRating(r.id)}
+                    aria-pressed={minRating === r.id}
                   >
-                    {city.split(',')[0]}
+                    <span>{r.label}</span>
                   </button>
                 ))}
               </div>

@@ -400,4 +400,63 @@ describe('Milestone 7: Venue Discovery Engine Expansion & Geographic Distance Pr
       expect(patchRes.body.settings.lng).toBeCloseTo(-97.7431, 2);
     });
   });
+
+  describe('7. Minimum Rating Filter & Settings Enforcement', () => {
+    it('defaults minRating to 4.0 on room creation', async () => {
+      const res = await request(app)
+        .post('/api/rooms')
+        .send({
+          hostName: 'RatingHost',
+          activityCategory: 'dining',
+          locationName: 'Austin, TX',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.room.settings.minRating).toBe(4.0);
+    });
+
+    it('filters out venues below minRating from room deck', () => {
+      const store = new RoomStore();
+      const deck = store.getDeckForRoom({
+        activityCategory: 'dining',
+        minRating: 4.8,
+        deckSize: 10,
+      });
+
+      expect(deck.length).toBeGreaterThan(0);
+      for (const venue of deck) {
+        expect(venue.rating).toBeGreaterThanOrEqual(4.8);
+      }
+    });
+
+    it('allows host to adjust minRating via settings patch', async () => {
+      const res = await request(app)
+        .post('/api/rooms')
+        .send({
+          hostName: 'RatingHost2',
+          activityCategory: 'dining',
+          minRating: 4.0,
+        });
+
+      const code = res.body.room.code;
+      const hostSession = res.body.sessionToken;
+      const hostId = res.body.participant.id;
+
+      const patchRes = await request(app)
+        .patch(`/api/rooms/${code}/settings`)
+        .set('x-session-token', hostSession)
+        .send({
+          participantId: hostId,
+          settings: {
+            minRating: 4.5,
+          },
+        });
+
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body.settings.minRating).toBe(4.5);
+      for (const venue of patchRes.body.deck) {
+        expect(venue.rating).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  });
 });

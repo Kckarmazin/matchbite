@@ -14,6 +14,7 @@ export function RoomLobby({ onStartSwiping }) {
   const [editDistance, setEditDistance] = useState(room?.settings?.distance || 'short_drive');
   const [editCuisines, setEditCuisines] = useState(room?.settings?.cuisinePreferences || []);
   const [editDietary, setEditDietary] = useState(room?.settings?.dietaryFilters || []);
+  const [editMinRating, setEditMinRating] = useState(room?.settings?.minRating ?? 4.0);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export function RoomLobby({ onStartSwiping }) {
       setEditDistance(room.settings.distance || 'short_drive');
       setEditCuisines(room.settings.cuisinePreferences || []);
       setEditDietary(room.settings.dietaryFilters || []);
+      setEditMinRating(room.settings.minRating ?? 4.0);
     }
   }, [room?.settings]);
 
@@ -69,6 +71,7 @@ export function RoomLobby({ onStartSwiping }) {
       distance: editDistance,
       cuisinePreferences: editCuisines,
       dietaryFilters: editDietary,
+      minRating: Number(editMinRating) || 4.0,
     });
     setIsSavingSettings(false);
     setShowSettingsEdit(false);
@@ -140,7 +143,7 @@ export function RoomLobby({ onStartSwiping }) {
           <button
             type="button"
             className="btn btn-primary"
-            style={{ flex: 1, minWidth: '100px', padding: '10px 12px', fontSize: '0.88rem' }}
+            style={{ flex: 1, minWidth: '95px', padding: '10px 10px', fontSize: '0.85rem' }}
             onClick={handleCopyLink}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -150,7 +153,7 @@ export function RoomLobby({ onStartSwiping }) {
           <button
             type="button"
             className={`btn ${showQrCode ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ flex: 1, minWidth: '120px', padding: '10px 12px', fontSize: '0.88rem' }}
+            style={{ flex: 1, minWidth: '110px', padding: '10px 10px', fontSize: '0.85rem' }}
             onClick={() => setShowQrCode((prev) => !prev)}
             aria-expanded={showQrCode}
             aria-label="Toggle Room QR Code"
@@ -163,7 +166,7 @@ export function RoomLobby({ onStartSwiping }) {
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ flex: 1, minWidth: '90px', padding: '10px 12px', fontSize: '0.88rem' }}
+              style={{ flex: 1, minWidth: '80px', padding: '10px 10px', fontSize: '0.85rem' }}
               onClick={handleShare}
             >
               <Share2 size={16} />
@@ -451,6 +454,32 @@ export function RoomLobby({ onStartSwiping }) {
               </div>
             </div>
 
+            {/* Min Rating */}
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                MINIMUM RATING
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {[
+                  { id: 0, label: 'Any' },
+                  { id: 3.5, label: '★ 3.5+' },
+                  { id: 4.0, label: '★ 4.0+' },
+                  { id: 4.5, label: '★ 4.5+' },
+                ].map((r) => (
+                  <button
+                    type="button"
+                    key={r.id}
+                    className={`chip-btn ${editMinRating === r.id ? 'active' : ''}`}
+                    style={{ flex: 1, padding: '6px 4px', fontSize: '0.78rem' }}
+                    onClick={() => setEditMinRating(r.id)}
+                    aria-pressed={editMinRating === r.id}
+                  >
+                    <span>{r.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="button"
@@ -499,6 +528,13 @@ export function RoomLobby({ onStartSwiping }) {
             </div>
 
             <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>MIN RATING</div>
+              <div style={{ fontWeight: 700, color: '#D97706' }}>
+                {room.settings?.minRating != null && room.settings.minRating > 0 ? `★ ${room.settings.minRating}+ Stars` : '★ 4.0+ Stars'}
+              </div>
+            </div>
+
+            <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>RADIUS</div>
               <div style={{ fontWeight: 700 }}>
                 {room.settings?.distance === 'walkable' ? 'Walk (<1mi)' :
@@ -506,16 +542,16 @@ export function RoomLobby({ onStartSwiping }) {
               </div>
             </div>
 
-            <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', gridColumn: room.settings?.locationName ? 'auto' : 'span 2' }}>
+            <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>PLACES TO SWIPE</div>
               <div style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                {room.settings?.deckSize === 'all' ? 'All Places (Every spot)' :
+                {room.settings?.deckSize === 'all' ? 'All Places' :
                  `${room.settings?.deckSize || 12} Spots`}
               </div>
             </div>
 
             {room.settings?.locationName && (
-              <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+              <div style={{ background: 'var(--surface-muted)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', gridColumn: 'span 2' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>LOCATION</div>
                 <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={room.settings.locationName}>
                   {room.settings.locationName}

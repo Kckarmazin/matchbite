@@ -62,6 +62,7 @@ export function createRoomsRouter(roomStore = globalRoomStore, broadcaster = glo
         locationName,
         lat,
         lng,
+        minRating,
       } = req.body || {};
 
       if (!hostName || typeof hostName !== 'string' || !hostName.trim()) {
@@ -101,6 +102,7 @@ export function createRoomsRouter(roomStore = globalRoomStore, broadcaster = glo
         locationName,
         lat: finalLat,
         lng: finalLng,
+        minRating,
       });
 
       const protocol = req.protocol || 'http';

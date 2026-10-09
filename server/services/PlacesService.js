@@ -1138,6 +1138,14 @@ out center ${queryLimit};`;
       filtered = seedVenues;
     }
 
+    const minRating = settings.minRating != null ? Number(settings.minRating) : 4.0;
+    if (minRating > 0) {
+      const ratingFiltered = filtered.filter(v => (Number(v.rating) || 0) >= minRating);
+      if (ratingFiltered.length >= 4 || isAll) {
+        filtered = ratingFiltered;
+      }
+    }
+
     const targetDeckSize = isAll ? seedVenues.length : (Number(deckSize) || 12);
     if (filtered.length < targetDeckSize) {
       const existingIds = new Set(filtered.map(v => v.id));
