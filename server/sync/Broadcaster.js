@@ -1,11 +1,16 @@
+import { ReactionCoalescer } from './ReactionCoalescer.js';
+
 /**
  * Server-Sent Events (SSE) Connection Hub
- * Manages real-time event streaming per room with auto-cleanup and heartbeat support.
+ * Manages real-time event streaming per room with auto-cleanup, backpressure control,
+ * and 200ms reaction coalescing.
  */
 export class Broadcaster {
   constructor() {
-    // Map of roomCode -> Set of { participantId, res, createdAt }
+    // Map of roomCode -> Set of { participantId, res, createdAt, isCongested }
     this.rooms = new Map();
+    this.sequenceNumber = 0;
+    this.reactionCoalescer = new ReactionCoalescer(this);
   }
 
   /**
@@ -45,6 +50,7 @@ export class Broadcaster {
       participantId,
       res,
       createdAt: Date.now(),
+      isCongested: false,
     };
 
     this.rooms.get(code).add(client);
@@ -56,6 +62,9 @@ export class Broadcaster {
         clients.delete(client);
         if (clients.size === 0) {
           this.rooms.delete(code);
+          if (this.reactionCoalescer) {
+            this.reactionCoalescer.cleanup(code);
+          }
         }
       }
     };
@@ -72,22 +81,36 @@ export class Broadcaster {
   }
 
   /**
-   * Sends an SSE event to all connected clients in a room.
+   * Sends an SSE event to all connected clients in a room with backpressure and sequence ID.
    * @param {string} roomCode - Room code
    * @param {string} eventName - Name of the event (e.g. 'participant:joined')
    * @param {object} data - Payload data
+   * @param {object} options - Broadcast options (e.g. { ephemeral: true })
    */
-  broadcast(roomCode, eventName, data) {
+  broadcast(roomCode, eventName, data, options = {}) {
     const code = roomCode.toUpperCase();
     const clients = this.rooms.get(code);
     if (!clients || clients.size === 0) return 0;
 
-    const payload = `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+    const eventId = ++this.sequenceNumber;
+    const payload = `id: ${eventId}\nevent: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+    const isEphemeral = Boolean(options.ephemeral);
     let delivered = 0;
 
     for (const client of clients) {
+      if (client.isCongested && isEphemeral) {
+        continue;
+      }
       try {
-        client.res.write(payload);
+        const canAcceptMore = client.res.write(payload);
+        if (canAcceptMore === false) {
+          client.isCongested = true;
+          if (typeof client.res.once === 'function') {
+            client.res.once('drain', () => {
+              client.isCongested = false;
+            });
+          }
+        }
         delivered++;
       } catch (err) {
         // Client write failed; remove stale connection
@@ -152,6 +175,9 @@ export class Broadcaster {
    */
   closeRoom(roomCode) {
     const code = roomCode.toUpperCase();
+    if (this.reactionCoalescer) {
+      this.reactionCoalescer.cleanup(code);
+    }
     const clients = this.rooms.get(code);
     if (clients) {
       for (const client of clients) {

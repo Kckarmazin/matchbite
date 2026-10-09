@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Star, MapPin, DollarSign } from 'lucide-react';
+import { Star, MapPin, DollarSign, Info, Clock, Sparkles, Utensils, CheckCircle, ExternalLink, X, Globe, Phone } from 'lucide-react';
 import { PromotedBadge } from '../Monetization/PromotedBadge.jsx';
 
 export function SwipeCard({
@@ -13,9 +13,22 @@ export function SwipeCard({
   const [isDragging, setIsDragging] = useState(false);
   const [isFlyingOut, setIsFlyingOut] = useState(false);
   const [flyDirection, setFlyDirection] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const cardRef = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0, time: 0 });
+
+  // Escape key handler to close bottom sheet
+  useEffect(() => {
+    if (!showDetails) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowDetails(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDetails]);
 
   // Handle Programmatic Swipes (from button taps or keyboard shortcuts)
   useEffect(() => {
@@ -197,6 +210,22 @@ export function SwipeCard({
         {venue.isPromoted && (
           <PromotedBadge badge={venue.sponsorBadge} cta={venue.sponsorCta} />
         )}
+        {isTop && (
+          <button
+            type="button"
+            className="venue-info-badge"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDetails(true);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label={`View details for ${venue.name}`}
+            title="View full venue details"
+          >
+            <Info size={14} />
+            <span>Info</span>
+          </button>
+        )}
       </div>
 
       {/* Card Details Body */}
@@ -235,6 +264,167 @@ export function SwipeCard({
           ))}
         </div>
       </div>
+
+      {/* Expandable Venue Details Bottom Sheet (Rec #10) */}
+      {showDetails && (
+        <div
+          className="venue-details-overlay"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDetails(false);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerMove={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`venue-details-title-${venue.id}`}
+        >
+          <div
+            className="venue-details-sheet"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+          >
+            <div className="sheet-handle" />
+
+            <div className="sheet-header">
+              <div>
+                <h3 id={`venue-details-title-${venue.id}`} className="sheet-title">
+                  {venue.name}
+                </h3>
+                <div className="sheet-meta">
+                  <span className="meta-cuisine">{venue.cuisine}</span>
+                  <span className="meta-divider">•</span>
+                  <span className="meta-price">{priceDisplay}</span>
+                  <span className="meta-divider">•</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: '#D97706', fontWeight: 700 }}>
+                    <Star size={13} fill="#F59E0B" color="#F59E0B" />
+                    <span>{venue.rating}</span>
+                    {venue.reviewCount && <span>({venue.reviewCount})</span>}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="sheet-close-btn"
+                onClick={() => setShowDetails(false)}
+                aria-label="Close details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="sheet-content">
+              {/* Full Address */}
+              <div className="sheet-section">
+                <h4 className="sheet-section-title">
+                  <MapPin size={15} color="var(--primary)" /> Address & Location
+                </h4>
+                <p className="sheet-text">{venue.address}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Distance: {venue.distance} away
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
+                  {venue.affiliateLinks?.directionsUrl && (
+                    <a
+                      href={venue.affiliateLinks.directionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sheet-link"
+                    >
+                      <span>Get Directions</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
+                  {venue.websiteUrl && (
+                    <a
+                      href={venue.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="sheet-link"
+                    >
+                      <Globe size={13} style={{ marginRight: '2px' }} />
+                      <span>Official Website</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
+                  {venue.phone && (
+                    <a
+                      href={`tel:${venue.phone.replace(/[^0-9+]/g, '')}`}
+                      className="sheet-link"
+                    >
+                      <Phone size={13} style={{ marginRight: '2px' }} />
+                      <span>{venue.phone}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Open Hours */}
+              <div className="sheet-section">
+                <h4 className="sheet-section-title">
+                  <Clock size={15} color="#10B981" /> Hours of Operation
+                </h4>
+                <p className="sheet-text">
+                  {venue.openHours || venue.hours || 'Open Daily • 11:30 AM – 11:00 PM'}
+                </p>
+              </div>
+
+              {/* Highlights & Atmosphere */}
+              <div className="sheet-section">
+                <h4 className="sheet-section-title">
+                  <Sparkles size={15} color="#F59E0B" /> Highlights & Atmosphere
+                </h4>
+                <div className="sheet-highlights-grid">
+                  {(venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience']).map((hl) => (
+                    <div key={hl} className="sheet-highlight-pill">
+                      <CheckCircle size={13} color="var(--success)" />
+                      <span>{hl}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Full Description */}
+              {venue.description && (
+                <div className="sheet-section">
+                  <h4 className="sheet-section-title">About this Spot</h4>
+                  <p className="sheet-text" style={{ lineHeight: 1.55 }}>
+                    {venue.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Cuisine Tags */}
+              <div className="sheet-section">
+                <h4 className="sheet-section-title">
+                  <Utensils size={15} color="var(--primary)" /> Cuisine & Vibe Tags
+                </h4>
+                <div className="venue-tags" style={{ marginTop: '6px' }}>
+                  {(venue.tags || []).map((t) => (
+                    <span key={t} className="venue-tag">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="sheet-footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowDetails(false)}
+                style={{ padding: '12px', fontSize: '0.95rem' }}
+              >
+                Back to Swiping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

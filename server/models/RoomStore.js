@@ -910,6 +910,120 @@ export class RoomStore {
   }
 
   /**
+   * Undoes a participant's vote on a venue, updating swiped count and broadcasting progress.
+   */
+  undoVote(rawCode, { participantId, sessionToken, venueId }) {
+    const code = normalizeRoomCode(rawCode);
+    const room = this.getRoom(code);
+
+    if (!room) {
+      const err = new Error(`Room ${code || rawCode} not found`);
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (room.status === 'closed') {
+      const err = new Error('Room is closed');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    if (!participantId || !room.participants[participantId]) {
+      const err = new Error('Participant not found in room');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    const participant = room.participants[participantId];
+
+    // Authenticate participant sessionToken
+    if (!sessionToken || participant.sessionToken !== sessionToken) {
+      const err = new Error('Invalid or missing session token; undo vote rejected');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    if (!venueId || typeof venueId !== 'string') {
+      const err = new Error('venueId is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    // Delete vote for this participant on venueId
+    if (room.votes && room.votes[venueId] && room.votes[venueId][participantId] !== undefined) {
+      delete room.votes[venueId][participantId];
+    }
+
+    // Reconcile unanimous match triggers:
+    // If the room was matched on this venue, but this participant rewound their positive vote,
+    // evaluate whether consensus still holds. If not, revert room status back to voting.
+    let matchReverted = false;
+    if (room.status === 'matched' && room.matchedVenueId === venueId) {
+      const activeParticipants = Object.values(room.participants);
+      const venueVotes = (room.votes && room.votes[venueId]) || Object.create(null);
+      const stillUnanimous =
+        activeParticipants.length > 0 &&
+        activeParticipants.every(p => {
+          const v = venueVotes[p.id];
+          return v === 'like' || v === 'superlike';
+        });
+
+      if (!stillUnanimous) {
+        room.status = 'voting';
+        room.matchedVenueId = null;
+        room.matchedAt = null;
+        matchReverted = true;
+
+        if (this.broadcaster) {
+          this.broadcaster.broadcast(code, 'match:reverted', {
+            venueId,
+            participantId,
+            reason: 'vote_undone',
+            roomStatus: 'voting',
+          });
+        }
+      }
+    }
+
+    // Recalculate distinct swiped count
+    let distinctSwiped = 0;
+    for (const vId of Object.keys(room.votes || {})) {
+      if (room.votes[vId] && room.votes[vId][participantId] !== undefined) {
+        distinctSwiped++;
+      }
+    }
+    participant.swipedCount = distinctSwiped;
+    const now = new Date().toISOString();
+    participant.lastSeenAt = now;
+    room.updatedAt = now;
+    room.version++;
+
+    const totalCards = room.deck ? room.deck.length : 0;
+    const progressPercent = totalCards > 0 ? Math.round((distinctSwiped / totalCards) * 100) : 0;
+
+    // Broadcast participant progress via SSE
+    if (this.broadcaster) {
+      this.broadcaster.broadcast(code, 'participant:progress', {
+        participantId,
+        participantName: participant.name,
+        swipedCount: distinctSwiped,
+        totalCards,
+        venueId,
+        progressPercent,
+      });
+    }
+
+    return {
+      success: true,
+      swipedCount: distinctSwiped,
+      totalCards,
+      progressPercent,
+      roomStatus: room.status,
+      matchReverted,
+    };
+  }
+
+  /**
    * Computes consensus rankings, tallying votes across all venues.
    */
   getRoomResults(rawCode) {

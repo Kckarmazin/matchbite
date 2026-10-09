@@ -3,12 +3,14 @@ import { useRoom } from '../../context/RoomContext.jsx';
 import { SwipeCard } from './SwipeCard.jsx';
 import { ActionControls } from './ActionControls.jsx';
 import { DeckComplete } from './DeckComplete.jsx';
+import { FloatingReactionDock } from './FloatingReactionDock.jsx';
+import { FloatingReactionCanvas } from './FloatingReactionCanvas.jsx';
 import { CustomVenueModal } from '../Monetization/CustomVenueModal.jsx';
 import { Sparkles, Layers, Trophy, PlusCircle, Zap } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export function SwipeDeck({ onViewResults = null }) {
-  const { room, participant, castVote, showToast, setViewMode, setIsVipModalOpen } = useRoom();
+  const { room, participant, castVote, undoVote, showToast, setViewMode, setIsVipModalOpen } = useRoom();
   const deck = useMemo(() => room?.deck || [], [room?.deck]);
 
   const [currentIndex, setCurrentIndex] = useState(() => {
@@ -64,6 +66,29 @@ export function SwipeDeck({ onViewResults = null }) {
     }
   }, [room?.code, castVote]);
 
+  // Step back 1 card to undo accidental swipe
+  const handleUndo = useCallback(async () => {
+    if (currentIndex <= 0 || isSubmitting) return;
+    const targetIndex = currentIndex - 1;
+    const prevVenue = deck[targetIndex];
+    if (!prevVenue) return;
+
+    setCurrentIndex(targetIndex);
+    setProgrammaticTrigger(null);
+
+    try {
+      setIsSubmitting(true);
+      if (undoVote) {
+        await undoVote(prevVenue.id);
+      }
+      showToast(`Rewound to ${prevVenue.name}`, 'info');
+    } catch (err) {
+      console.error('Error undoing vote:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [currentIndex, isSubmitting, deck, undoVote, showToast]);
+
   // Trigger programmatic swipe (e.g. from buttons or keyboard)
   const handleActionClick = useCallback((direction) => {
     if (!topCard || isSubmitting) return;
@@ -79,6 +104,12 @@ export function SwipeDeck({ onViewResults = null }) {
     const handleKeyDown = (e) => {
       // Ignore if user is currently typing in an input or textarea
       if (e.target && e.target.matches('input, textarea, select, [contenteditable="true"]')) {
+        return;
+      }
+
+      if (e.key === 'z' || e.key === 'Z' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleUndo();
         return;
       }
 
@@ -98,7 +129,7 @@ export function SwipeDeck({ onViewResults = null }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [topCard, isSubmitting, handleActionClick]);
+  }, [topCard, isSubmitting, handleActionClick, handleUndo]);
 
   // If deck is exhausted, render DeckComplete screen
   if (deck.length > 0 && currentIndex >= deck.length) {
@@ -216,15 +247,22 @@ export function SwipeDeck({ onViewResults = null }) {
           })}
       </div>
 
+      {/* Real-Time Floating Swipe Reactions */}
+      <FloatingReactionDock activeVenueId={topCard?.id} />
+
       {/* Accessible Action Controls Bar */}
       <ActionControls
         onSwipe={handleActionClick}
+        onUndo={handleUndo}
+        canUndo={currentIndex > 0 && !isSubmitting}
         disabled={isSubmitting || !topCard}
       />
 
       <div className="keyboard-shortcuts-hint">
-        <span>Use <strong>←</strong> Pass, <strong>↑</strong> Superlike, <strong>→</strong> Like</span>
+        <span>Use <strong>↺ / Z</strong> Rewind, <strong>←</strong> Pass, <strong>↑</strong> Superlike, <strong>→</strong> Like</span>
       </div>
+
+      <FloatingReactionCanvas />
 
       <CustomVenueModal
         isOpen={isCustomModalOpen}

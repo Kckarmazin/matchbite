@@ -8,6 +8,7 @@ import { createRoomsRouter } from './routes/rooms.js';
 import { createVotesRouter } from './routes/votes.js';
 import { createTiebreakerRouter } from './routes/tiebreaker.js';
 import { createMonetizationRouter } from './routes/monetization.js';
+import { createImagesRouter } from './routes/images.js';
 import { globalRoomStore } from './models/RoomStore.js';
 import { globalBroadcaster } from './sync/Broadcaster.js';
 import { globalPlacesService } from './services/PlacesService.js';
@@ -196,6 +197,7 @@ export function createApp(options = {}) {
   app.use('/api/rooms', createRoomsRouter(roomStore, broadcaster));
   app.use('/api/rooms', createVotesRouter(roomStore, broadcaster));
   app.use('/api/rooms', createTiebreakerRouter(roomStore, broadcaster));
+  app.use('/api/images', createImagesRouter(roomStore));
   app.use('/api', createMonetizationRouter(roomStore, broadcaster));
 
   // Structured JSON 404 for unmatched API routes

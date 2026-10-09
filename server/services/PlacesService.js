@@ -13,47 +13,162 @@ export const CUISINE_PHOTOS = Object.freeze({
   pizza: [
     'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1528137871618-79d2761e3fd5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?auto=format&fit=crop&w=800&q=80',
   ],
   mexican: [
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1584208632869-05fa0bdeaa5f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1534352956036-cd81e27dd615?auto=format&fit=crop&w=800&q=80',
   ],
   burger: [
     'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1565299507177-b0ac66763828?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1521305916504-4a1121188589?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=800&q=80',
   ],
   sushi: [
     'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1611143669185-af224c5e3252?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1553621042-f6e147245754?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1562436260-8c9216eeb703?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
   ],
   italian: [
     'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1546549032-9571cd6b27df?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1621996346565-e3d5d6281093?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1579684947550-22e945225d9a?auto=format&fit=crop&w=800&q=80',
   ],
   seafood: [
     'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1559737558-2f5a35f4523b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
   ],
   asian: [
     'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1541696490-8744a5dc0228?auto=format&fit=crop&w=800&q=80',
+  ],
+  bbq: [
+    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
+  ],
+  steak: [
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1546833999-b9f581a1996d?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80',
   ],
   cafe: [
     'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?auto=format&fit=crop&w=800&q=80',
+  ],
+  brunch: [
+    'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1484723091739-0045614eb776?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1506084868230-bb9d95c24759?auto=format&fit=crop&w=800&q=80',
+  ],
+  dessert: [
+    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&w=800&q=80',
   ],
   bar: [
     'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1560512823-829485b8bf24?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1587271407850-8d438ca9fdf2?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1536935338788-846bb9981813?auto=format&fit=crop&w=800&q=80',
+  ],
+  brewery: [
+    'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1584225064785-c62a8b43d148?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518176258769-f227c798150e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1571613316887-6f8d5cbf7ef7?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1535958636474-b021ee887b13?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1584225064785-c62a8b43d148?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518176258769-f227c798150e?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1571613316887-6f8d5cbf7ef7?auto=format&fit=crop&w=800&q=80',
   ],
   entertainment: [
     'https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1511882150382-421056c89033?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=800&q=80',
   ],
   general: [
     'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1537047902294-62a40c20a6ae?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=800&q=80',
   ],
 });
 
@@ -294,19 +409,28 @@ export class PlacesService {
     let pool = CUISINE_PHOTOS.general;
 
     if (text.includes('pizza') || text.includes('pizzeria')) pool = CUISINE_PHOTOS.pizza;
-    else if (text.includes('taco') || text.includes('mexican') || text.includes('cantina')) pool = CUISINE_PHOTOS.mexican;
-    else if (text.includes('burger') || text.includes('grill') || text.includes('bbq')) pool = CUISINE_PHOTOS.burger;
-    else if (text.includes('sushi') || text.includes('ramen') || text.includes('japanese')) pool = CUISINE_PHOTOS.sushi;
-    else if (text.includes('pasta') || text.includes('italian') || text.includes('trattoria')) pool = CUISINE_PHOTOS.italian;
-    else if (text.includes('seafood') || text.includes('oyster') || text.includes('fish')) pool = CUISINE_PHOTOS.seafood;
-    else if (text.includes('asian') || text.includes('thai') || text.includes('chinese') || text.includes('noodle')) pool = CUISINE_PHOTOS.asian;
-    else if (text.includes('cafe') || text.includes('coffee') || text.includes('bakery')) pool = CUISINE_PHOTOS.cafe;
-    else if (text.includes('bar') || text.includes('lounge') || text.includes('pub') || text.includes('brew') || category === 'bars') pool = CUISINE_PHOTOS.bar;
-    else if (category === 'entertainment' || category === 'activities') pool = CUISINE_PHOTOS.entertainment;
+    else if (text.includes('taco') || text.includes('mexican') || text.includes('cantina') || text.includes('taqueria') || text.includes('burrito')) pool = CUISINE_PHOTOS.mexican;
+    else if (text.includes('bbq') || text.includes('barbecue') || text.includes('smokehouse') || text.includes('ribs') || text.includes('brisket')) pool = CUISINE_PHOTOS.bbq;
+    else if (text.includes('steak') || text.includes('chophouse') || text.includes('prime')) pool = CUISINE_PHOTOS.steak;
+    else if (text.includes('burger') || text.includes('smash') || text.includes('slider')) pool = CUISINE_PHOTOS.burger;
+    else if (text.includes('sushi') || text.includes('ramen') || text.includes('japanese') || text.includes('izakaya')) pool = CUISINE_PHOTOS.sushi;
+    else if (text.includes('pasta') || text.includes('italian') || text.includes('trattoria') || text.includes('risotto')) pool = CUISINE_PHOTOS.italian;
+    else if (text.includes('seafood') || text.includes('oyster') || text.includes('fish') || text.includes('lobster') || text.includes('crab')) pool = CUISINE_PHOTOS.seafood;
+    else if (text.includes('brunch') || text.includes('breakfast') || text.includes('pancake') || text.includes('waffle')) pool = CUISINE_PHOTOS.brunch;
+    else if (text.includes('dessert') || text.includes('ice cream') || text.includes('gelato') || text.includes('pastry') || text.includes('bakery')) pool = CUISINE_PHOTOS.dessert;
+    else if (text.includes('brewery') || text.includes('brewing') || text.includes('beer') || text.includes('taproom') || text.includes('biergarten')) pool = CUISINE_PHOTOS.brewery;
+    else if (text.includes('asian') || text.includes('thai') || text.includes('chinese') || text.includes('noodle') || text.includes('vietnamese') || text.includes('pho') || text.includes('dim sum') || text.includes('korean')) pool = CUISINE_PHOTOS.asian;
+    else if (text.includes('cafe') || text.includes('coffee') || text.includes('espresso') || text.includes('roaster')) pool = CUISINE_PHOTOS.cafe;
+    else if (text.includes('bar') || text.includes('lounge') || text.includes('pub') || text.includes('cocktail') || category === 'bars') pool = CUISINE_PHOTOS.bar;
+    else if (category === 'entertainment' || category === 'activities' || text.includes('arcade') || text.includes('bowling') || text.includes('cinema')) pool = CUISINE_PHOTOS.entertainment;
 
     let hash = 0;
-    for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
-    return pool[hash % pool.length];
+    const seed = `${name} ${cuisine || ''} ${category || ''}`;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return pool[Math.abs(hash) % pool.length];
   }
 
   /**
@@ -414,6 +538,46 @@ out center ${queryLimit};`;
 
       const imageUrl = this.getImageForVenue(name, cuisine, category);
 
+      // Extract rich OpenStreetMap metadata
+      const website = node.tags.website || node.tags['contact:website'] || node.tags.url || null;
+      const phone = node.tags.phone || node.tags['contact:phone'] || null;
+      const openingHours = node.tags.opening_hours || null;
+      const outdoorSeating = node.tags.outdoor_seating === 'yes';
+      const takeaway = node.tags.takeaway === 'yes' || node.tags.takeaway === 'only';
+      const delivery = node.tags.delivery === 'yes';
+      const brewery = Boolean(node.tags.brewery || node.tags.microbrewery || node.tags.craft);
+      const vegetarian = node.tags['diet:vegetarian'] === 'yes' || node.tags['diet:vegan'] === 'yes';
+      const wifi = node.tags.internet_access === 'wlan' || node.tags.internet_access === 'yes' || node.tags.internet_access === 'free';
+
+      // Dynamic rich feature tags
+      const tags = [cuisine, `${distanceNum.toFixed(1)} mi`];
+      if (outdoorSeating) tags.push('☀️ Patio');
+      if (takeaway) tags.push('🥡 Takeout');
+      if (delivery) tags.push('🛵 Delivery');
+      if (brewery) tags.push('🍺 Craft Brews');
+      if (vegetarian) tags.push('🌱 Veg Friendly');
+      if (wifi) tags.push('📶 Free Wi-Fi');
+      if (website) tags.push('🌐 Website');
+
+      // Ensure at least 3-4 lively tags per card
+      if (tags.length < 3) {
+        const atmosphereTags = ['Popular Spot', 'Neighborhood Gem', 'Great Ambiance', 'Group Friendly', 'Cozy Vibe'];
+        tags.push(atmosphereTags[hash % atmosphereTags.length]);
+      }
+
+      // Dynamic contextual description
+      const descPrefixes = ['Beloved neighborhood', 'Vibrant local', 'Highly rated', 'Cozy community', 'Charming neighborhood'];
+      const prefix = descPrefixes[hash % descPrefixes.length];
+      const highlights = [];
+      if (outdoorSeating) highlights.push('outdoor patio seating');
+      if (takeaway || delivery) highlights.push('takeout & delivery options');
+      if (brewery) highlights.push('house craft beverages');
+      if (wifi) highlights.push('Wi-Fi access');
+      const highlightSentence = highlights.length > 0 
+        ? ` Highlights include ${highlights.join(' and ')}.` 
+        : ' Serving signature local favorites in a welcoming atmosphere.';
+      const description = `${prefix} ${cuisine.toLowerCase()} spot rated ${rating}★ based on ${reviewCount} reviews.${highlightSentence}`;
+
       return {
         id: `osm-${node.id}`,
         name,
@@ -427,8 +591,11 @@ out center ${queryLimit};`;
         imageUrl,
         lat: nodeLat,
         lng: nodeLon,
-        tags: [cuisine, `${distanceNum.toFixed(1)} mi`, node.tags.outdoor_seating === 'yes' ? 'Patio' : 'Popular Spot'],
-        description: `Local ${cuisine} spot rated ${rating}★ based on ${reviewCount} reviews.`,
+        tags,
+        description,
+        websiteUrl: website,
+        phone,
+        openHours: openingHours || 'Open Daily • Check website or call for hours',
         isPromoted: idx === 0,
         sponsorBadge: idx === 0 ? 'Featured' : null,
         sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
@@ -436,6 +603,8 @@ out center ${queryLimit};`;
           directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
           reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=osm-${node.id}`,
           deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=osm-${node.id}`,
+          menuUrl: website || `https://www.google.com/search?q=${encodeURIComponent(name + ' menu ' + address)}`,
+          websiteUrl: website,
         },
       };
     });

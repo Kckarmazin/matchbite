@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
-import { Share2, Copy, Play, Check, Users, Sparkles, SlidersHorizontal, Bell, UserX, Utensils, MapPin, Layers } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { Share2, Copy, Play, Check, Users, Sparkles, SlidersHorizontal, Bell, UserX, Utensils, MapPin, Layers, QrCode } from 'lucide-react';
 import { CUISINE_OPTIONS, DIETARY_OPTIONS } from './CreateRoom.jsx';
 
 export function RoomLobby({ onStartSwiping }) {
-  const { room, participant, updateSettings, showToast, kickParticipant, nudgeParticipant } = useRoom();
+  const { room, participant, updateSettings, showToast, kickParticipant, nudgeParticipant, sendReaction, latestReaction } = useRoom();
   const [copied, setCopied] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [showSettingsEdit, setShowSettingsEdit] = useState(false);
   const [editDeckSize, setEditDeckSize] = useState(room?.settings?.deckSize || 'all');
   const [editDistance, setEditDistance] = useState(room?.settings?.distance || 'short_drive');
@@ -21,6 +24,31 @@ export function RoomLobby({ onStartSwiping }) {
       setEditDietary(room.settings.dietaryFilters || []);
     }
   }, [room?.settings]);
+
+  // Handle incoming live reactions from other participants
+  useEffect(() => {
+    if (latestReaction?.emoji) {
+      spawnFloatingEmoji(latestReaction.emoji, latestReaction.senderName);
+    }
+  }, [latestReaction]);
+
+  const spawnFloatingEmoji = (emoji, senderName = null) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    const startX = Math.floor(Math.random() * 70) + 15; // 15% to 85%
+    const rotation = (Math.random() - 0.5) * 36;
+    const scale = 0.9 + Math.random() * 0.35;
+    setFloatingEmojis((prev) => [...prev.slice(-25), { id, emoji, senderName, startX, rotation, scale }]);
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((item) => item.id !== id));
+    }, 2600);
+  };
+
+  const handleSendEmoji = (emoji) => {
+    spawnFloatingEmoji(emoji, participant?.name || 'You');
+    if (sendReaction) {
+      sendReaction(emoji).catch(() => {});
+    }
+  };
 
   const toggleEditCuisine = (id) => {
     setEditCuisines((prev) =>
@@ -55,6 +83,7 @@ export function RoomLobby({ onStartSwiping }) {
 
   const isHost = participant?.isHost || room.hostId === participant?.id;
   const joinUrl = `${window.location.origin}/?room=${room.code}`;
+  const qrJoinUrl = `${window.location.origin}/?room=${room.code}&ref=qr`;
 
   const handleCopyLink = async () => {
     try {
@@ -104,25 +133,37 @@ export function RoomLobby({ onStartSwiping }) {
         <span className="code-title">Room Code</span>
         <span className="code-number">{room.code}</span>
         <p style={{ fontSize: '0.85rem', color: '#9F1239', marginTop: '6px' }}>
-          Share this code with your friends or send the direct link below!
+          Share this code with your friends, scan the QR code, or send the direct link below!
         </p>
 
-        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', width: '100%', maxWidth: '320px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '14px', width: '100%', maxWidth: '360px', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-primary"
-            style={{ padding: '10px 14px', fontSize: '0.9rem' }}
+            style={{ flex: 1, minWidth: '100px', padding: '10px 12px', fontSize: '0.88rem' }}
             onClick={handleCopyLink}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
             <span>{copied ? 'Copied!' : 'Copy Link'}</span>
           </button>
 
+          <button
+            type="button"
+            className={`btn ${showQrCode ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ flex: 1, minWidth: '120px', padding: '10px 12px', fontSize: '0.88rem' }}
+            onClick={() => setShowQrCode((prev) => !prev)}
+            aria-expanded={showQrCode}
+            aria-label="Toggle Room QR Code"
+          >
+            <QrCode size={16} />
+            <span>{showQrCode ? 'Hide QR' : 'Show QR Code'}</span>
+          </button>
+
           {typeof navigator !== 'undefined' && navigator.share && (
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ padding: '10px 14px', fontSize: '0.9rem' }}
+              style={{ flex: 1, minWidth: '90px', padding: '10px 12px', fontSize: '0.88rem' }}
               onClick={handleShare}
             >
               <Share2 size={16} />
@@ -130,6 +171,42 @@ export function RoomLobby({ onStartSwiping }) {
             </button>
           )}
         </div>
+
+        {/* Dynamic In-Lobby QR Code */}
+        {showQrCode && (
+          <div
+            className="qr-code-box"
+            style={{
+              marginTop: '16px',
+              padding: '16px',
+              background: '#FFFFFF',
+              borderRadius: 'var(--radius-md)',
+              border: '1.5px solid var(--border)',
+              boxShadow: 'var(--shadow-md)',
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            <div style={{ padding: '8px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+              <QRCodeSVG
+                value={qrJoinUrl}
+                size={170}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', display: 'block' }}>
+                Scan to Join Instantly
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Point mobile camera at QR code • Room {room.code}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Participants Roster Card */}
@@ -498,6 +575,70 @@ export function RoomLobby({ onStartSwiping }) {
         )}
       </div>
 
+      {/* Interactive Lobby Emoji Reaction Bar */}
+      <div
+        className="card"
+        style={{
+          marginTop: '16px',
+          padding: '16px 20px',
+          background: 'linear-gradient(135deg, #FFFFFF, #FFF1F2)',
+          border: '1.5px solid #FECDD3',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '6px' }}>
+          <Sparkles size={16} color="var(--primary)" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            Lobby Reactions & Banter
+          </span>
+        </div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 12px 0' }}>
+          Tap an emoji to react across all squad members' screens while waiting!
+        </p>
+        <div
+          className="lobby-reaction-bar"
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
+          {[
+            { emoji: '🍻', label: 'Cheers' },
+            { emoji: '🌮', label: 'Starving' },
+            { emoji: '🎉', label: 'Party' },
+            { emoji: '⏰', label: 'Hurry Up!' },
+          ].map(({ emoji, label }) => (
+            <button
+              key={emoji}
+              type="button"
+              className="lobby-reaction-btn"
+              onClick={() => handleSendEmoji(emoji)}
+              title={label}
+              aria-label={`Send ${label} reaction`}
+              style={{
+                background: '#FFFFFF',
+                border: '1.5px solid var(--border)',
+                borderRadius: '999px',
+                padding: '8px 14px',
+                minHeight: '44px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '1.25rem',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <span>{emoji}</span>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Start Swiping CTA */}
       <div style={{ marginTop: '16px' }}>
         {isHost ? (
@@ -527,6 +668,58 @@ export function RoomLobby({ onStartSwiping }) {
             </p>
           </div>
         )}
+      </div>
+
+      {/* Floating lobby reaction particles container */}
+      <div
+        className="lobby-particles-overlay"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+          zIndex: 9999,
+          overflow: 'hidden',
+        }}
+      >
+        {floatingEmojis.map((item) => (
+          <div
+            key={item.id}
+            className="lobby-floating-particle"
+            style={{
+              position: 'absolute',
+              bottom: '80px',
+              left: `${item.startX}%`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transform: `rotate(${item.rotation}deg) scale(${item.scale})`,
+              animation: 'floatLobbyParticle 2.5s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            }}
+          >
+            <span style={{ fontSize: '2.4rem', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))' }}>
+              {item.emoji}
+            </span>
+            {item.senderName && (
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  background: 'rgba(0,0,0,0.75)',
+                  color: '#FFFFFF',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  marginTop: '2px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {item.senderName}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

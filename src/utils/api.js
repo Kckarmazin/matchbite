@@ -148,6 +148,41 @@ export async function voteVenue(code, participantId, venueId, vote, sessionToken
 }
 
 /**
+ * Undoes the last swipe vote on a venue.
+ */
+export async function undoVote(code, participantId, venueId, sessionToken = null) {
+  const token = sessionToken || getStoredSessionToken(code);
+  return request(`/rooms/${encodeURIComponent(code)}/undo`, {
+    method: 'POST',
+    roomCode: code,
+    sessionToken: token,
+    body: JSON.stringify({
+      participantId,
+      venueId,
+      sessionToken: token,
+    }),
+  });
+}
+
+/**
+ * Broadcasts an ephemeral reaction emoji (supports lobby and in-round swiping).
+ */
+export async function sendReaction(code, { emoji, participantId, senderName, participantName, avatar, venueId } = {}) {
+  return request(`/rooms/${encodeURIComponent(code)}/reactions`, {
+    method: 'POST',
+    roomCode: code,
+    body: JSON.stringify({
+      emoji,
+      participantId,
+      senderName: senderName || participantName,
+      participantName: participantName || senderName,
+      avatar,
+      venueId,
+    }),
+  });
+}
+
+/**
  * Retrieves room consensus results & leaderboard.
  */
 export async function getRoomResults(code) {
@@ -240,6 +275,8 @@ export function connectRoomStream(code, participantId, sessionTokenOrOnEvent, on
         'room:upgraded',
         'deck:updated',
         'room:closed',
+        'lobby:reaction',
+        'reaction:batch',
       ];
 
       for (const name of eventNames) {

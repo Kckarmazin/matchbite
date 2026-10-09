@@ -1,9 +1,20 @@
 import React from 'react';
-import { X, Star, Heart } from 'lucide-react';
+import { X, Star, Heart, RotateCcw } from 'lucide-react';
 
-export function ActionControls({ onSwipe, disabled = false }) {
+export function ActionControls({ onSwipe, onUndo, canUndo = false, disabled = false }) {
   return (
     <div className="action-controls-bar">
+      <button
+        type="button"
+        className="ctrl-btn ctrl-rewind"
+        onClick={onUndo}
+        disabled={disabled || !canUndo}
+        aria-label="Rewind previous card"
+        title="Rewind ↺ (Z or Backspace)"
+      >
+        <RotateCcw size={22} />
+      </button>
+
       <button
         type="button"
         className="ctrl-btn ctrl-pass"

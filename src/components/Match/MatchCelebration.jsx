@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import { fireCelebrationConfetti, playMatchChime } from './Confetti.js';
 import { PromotedBadge } from '../Monetization/PromotedBadge.jsx';
+import { ViralMatchCardModal } from './ViralMatchCardModal.jsx';
 import {
   Sparkles,
   Star,
@@ -25,6 +26,7 @@ export function MatchCelebration({
   const { room, participant, showToast, leaveRoom } = useRoom();
   const [copiedLink, setCopiedLink] = useState(false);
   const [isLoadingTimedOut, setIsLoadingTimedOut] = useState(false);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
   // Derive venue and match details from props or room state with deck fallback
   const venue = propVenue
@@ -340,6 +342,16 @@ export function MatchCelebration({
       <div className="match-footer-controls">
         <button
           type="button"
+          className="btn btn-primary"
+          onClick={() => setIsCardModalOpen(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Sparkles size={18} />
+          <span>Story Card 📸</span>
+        </button>
+
+        <button
+          type="button"
           className="btn btn-outline"
           onClick={handleShareResult}
         >
@@ -358,6 +370,12 @@ export function MatchCelebration({
           </button>
         )}
       </div>
+
+      <ViralMatchCardModal
+        venue={venue}
+        isOpen={isCardModalOpen}
+        onClose={() => setIsCardModalOpen(false)}
+      />
     </div>
   );
 }

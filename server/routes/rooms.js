@@ -391,6 +391,71 @@ export function createRoomsRouter(roomStore = globalRoomStore, broadcaster = glo
   });
 
   /**
+   * POST /api/rooms/:code/reactions
+   * Broadcasts an ephemeral emoji reaction to all connected participants.
+   */
+  router.post('/:code/reactions', (req, res) => {
+    const rawCode = req.params.code;
+    const code = normalizeRoomCode(rawCode);
+    const { participantId: headerParticipantId } = extractAuthTokens(req);
+    const { emoji, senderName, avatar, venueId, participantId: bodyParticipantId, participantName } = req.body || {};
+    const effectiveParticipantId = headerParticipantId || bodyParticipantId || 'anon';
+
+    if (!code) {
+      return res.status(400).json({ success: false, error: 'Invalid room code format' });
+    }
+    if (!emoji || typeof emoji !== 'string') {
+      return res.status(400).json({ success: false, error: 'emoji is required' });
+    }
+
+    const room = roomStore.getRoom(code);
+    if (!room) {
+      return res.status(404).json({ success: false, error: `Room ${code} not found or expired` });
+    }
+
+    const p = effectiveParticipantId && room.participants ? room.participants[effectiveParticipantId] : null;
+    const name = senderName || participantName || p?.name || 'Friend';
+    const userAvatar = avatar || p?.avatar || '🍕';
+
+    if (broadcaster) {
+      // Ingest into 200ms windowed reaction coalescer and enforce rate limits first
+      if (broadcaster.reactionCoalescer) {
+        const coalesced = broadcaster.reactionCoalescer.ingest(code, {
+          participantId: effectiveParticipantId,
+          participantName: name,
+          avatar: userAvatar,
+          emoji,
+          venueId: venueId || null,
+        });
+
+        if (!coalesced.accepted && coalesced.reason === 'participant_rate_limited') {
+          return res.status(429).json({ success: false, error: 'Rate limit exceeded' });
+        }
+        if (!coalesced.accepted && coalesced.reason === 'room_rate_limited') {
+          return res.status(202).json({ success: true, coalesced: false, dropped: true, emoji });
+        }
+      }
+
+      // In lobby state, deliver immediate lobby reaction animation only if accepted by rate limiter
+      if (room.status === 'lobby') {
+        broadcaster.broadcast(code, 'lobby:reaction', {
+          emoji,
+          participantId: effectiveParticipantId,
+          senderName: name,
+          avatar: userAvatar,
+          timestamp: Date.now(),
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      emoji,
+      coalesced: true,
+    });
+  });
+
+  /**
    * GET /api/rooms/:code/stream
    * Establishes real-time Server-Sent Events (SSE) stream.
    */

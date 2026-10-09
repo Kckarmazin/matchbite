@@ -180,6 +180,64 @@ export function createVotesRouter(roomStore = globalRoomStore, broadcaster = glo
   });
 
   /**
+   * POST /api/rooms/:code/undo
+   * POST /api/rooms/:code/vote/undo
+   * Undoes the last vote cast by a participant on a venue.
+   */
+  const handleUndoVote = (req, res) => {
+    const rawCode = req.params.code;
+    const code = normalizeRoomCode(rawCode);
+    const { sessionToken } = extractAuthTokens(req);
+    const { participantId, venueId } = req.body || {};
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid room code format',
+      });
+    }
+
+    if (!participantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'participantId is required',
+      });
+    }
+
+    if (!venueId || typeof venueId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'venueId is required',
+      });
+    }
+
+    if (!sessionToken) {
+      return res.status(403).json({
+        success: false,
+        error: 'Authentication session token is required to undo a vote',
+      });
+    }
+
+    try {
+      const result = roomStore.undoVote(code, {
+        participantId,
+        sessionToken,
+        venueId,
+      });
+
+      return res.status(200).json(result);
+    } catch (err) {
+      return res.status(err.statusCode || 500).json({
+        success: false,
+        error: err.message || 'Failed to undo vote',
+      });
+    }
+  };
+
+  router.post('/:code/undo', handleUndoVote);
+  router.post('/:code/vote/undo', handleUndoVote);
+
+  /**
    * GET /api/rooms/:code/results
    * Retrieves current room consensus state and results leaderboard.
    */

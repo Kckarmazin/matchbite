@@ -21,8 +21,18 @@ export function RoomProvider({ children }) {
   const [activeTiebreakerSpin, setActiveTiebreakerSpin] = useState(null);
   const [viewMode, setViewMode] = useState('normal'); // 'normal', 'leaderboard', 'roulette'
   const [isVipModalOpen, setIsVipModalOpen] = useState(false);
+  const [latestReaction, setLatestReaction] = useState(null);
+  const [localReactionEvent, setLocalReactionEvent] = useState(null);
+  const [lastReactionBatch, setLastReactionBatch] = useState(null);
 
   const streamDisconnectRef = useRef(null);
+
+  const triggerLocalReaction = useCallback((reactionData) => {
+    setLocalReactionEvent({
+      ...reactionData,
+      _timestamp: Date.now(),
+    });
+  }, []);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ id: Date.now(), message, type });
@@ -217,6 +227,21 @@ export function RoomProvider({ children }) {
       case 'participant:nudged':
         if (data.targetParticipantId === participant?.id) {
           showToast(`🔔 ${data.message || 'Your host is nudging you to vote!'}`, 'info');
+        }
+        break;
+
+      case 'lobby:reaction':
+        if (data?.emoji) {
+          setLatestReaction({
+            ...data,
+            id: `${Date.now()}-${Math.random()}`,
+          });
+        }
+        break;
+
+      case 'reaction:batch':
+        if (data) {
+          setLastReactionBatch(data);
         }
         break;
 
@@ -458,6 +483,41 @@ export function RoomProvider({ children }) {
     } catch (err) {
       showToast(err.message || 'Failed to submit vote', 'error');
       throw err;
+    }
+  };
+
+  // Undo swipe vote
+  const handleUndoVote = async (venueId) => {
+    if (!room?.code || !participant?.id) return { success: false };
+    try {
+      const session = getRoomSession(room.code);
+      const token = participant.sessionToken || session?.sessionToken || null;
+      const res = await api.undoVote(room.code, participant.id, venueId, token);
+      return res;
+    } catch (err) {
+      console.error('Failed to undo vote:', err);
+      showToast(err.message || 'Failed to undo vote', 'error');
+      throw err;
+    }
+  };
+
+  // Send interactive emoji reaction
+  const handleSendReaction = async (reactionInput) => {
+    if (!room?.code) return { success: false };
+    const emoji = typeof reactionInput === 'string' ? reactionInput : reactionInput?.emoji;
+    const venueId = typeof reactionInput === 'object' ? reactionInput?.venueId : null;
+    try {
+      return await api.sendReaction(room.code, {
+        emoji,
+        venueId,
+        participantId: participant?.id,
+        senderName: participant?.name,
+        participantName: participant?.name,
+        avatar: participant?.avatar,
+      });
+    } catch (err) {
+      console.warn('Failed to send reaction:', err);
+      return { success: false };
     }
   };
 
@@ -710,6 +770,12 @@ export function RoomProvider({ children }) {
         kickParticipant: handleKickParticipant,
         nudgeParticipant: handleNudgeParticipant,
         startSuddenDeath: handleStartSuddenDeath,
+        undoVote: handleUndoVote,
+        sendReaction: handleSendReaction,
+        latestReaction,
+        lastReactionBatch,
+        localReactionEvent,
+        triggerLocalReaction,
       }}
     >
       {children}

@@ -757,6 +757,17 @@ body {
   transform: scale(0.92);
 }
 
+.ctrl-rewind {
+  width: 48px;
+  height: 48px;
+  color: #F59E0B;
+}
+
+.ctrl-rewind:hover:not(:disabled) {
+  border-color: #F59E0B;
+  background: #FFFBEB;
+}
+
 .ctrl-pass {
   width: 58px;
   height: 58px;
@@ -1159,3 +1170,392 @@ body {
   border-color: var(--primary);
   color: var(--primary);
 }
+
+/* =========================================================
+   Tier 2: Venue Details Bottom Sheet (Rec #10)
+   ========================================================= */
+
+.venue-info-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.venue-info-badge:hover {
+  background: rgba(15, 23, 42, 0.9);
+  transform: scale(1.05);
+}
+
+.venue-details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeInOverlay 0.2s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.venue-details-sheet {
+  background: var(--surface-card);
+  width: 100%;
+  max-width: 520px;
+  max-height: 82vh;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheet-handle {
+  width: 44px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 999px;
+  margin: 12px auto 6px;
+  flex-shrink: 0;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 20px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+}
+
+.sheet-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.sheet-close-btn {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sheet-close-btn:hover {
+  background: #F1F5F9;
+  color: var(--text-main);
+}
+
+.sheet-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sheet-section {
+  margin-bottom: 16px;
+}
+
+.sheet-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sheet-text {
+  font-size: 0.92rem;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.sheet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sheet-link:hover {
+  text-decoration: underline;
+}
+
+.sheet-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.sheet-highlight-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.sheet-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-card);
+}
+
+/* =========================================================
+   Tier 2: Interactive Lobby Reactions (Rec #9)
+   ========================================================= */
+
+.lobby-reaction-btn {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.lobby-reaction-btn:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: var(--primary);
+  background: #FFF1F2;
+  box-shadow: var(--shadow-md);
+}
+
+.lobby-reaction-btn:active {
+  transform: scale(0.92);
+}
+
+@keyframes floatLobbyParticle {
+  0% {
+    transform: translateY(0) scale(0.35);
+    opacity: 0;
+  }
+  12% {
+    transform: translateY(-40px) scale(1.2);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-220px) scale(1.0);
+    opacity: 0.95;
+  }
+  80% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-500px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* =========================================================
+   Tier 3: Viral Match Card Modal & Floating Reactions
+   ========================================================= */
+
+/* Modal Backdrop & Dialog for Card Export */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+}
+
+.modal-dialog {
+  background: var(--surface-card, #FFFFFF);
+  border-radius: var(--radius-lg, 20px);
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.modal-close-btn:hover {
+  background: var(--surface-muted);
+  color: var(--text-main);
+}
+
+.format-toggle-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--surface-muted);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.format-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.format-btn.active {
+  background: var(--surface-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Floating Reaction Dock (Rec #13) */
+.reaction-dock-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px 0 6px;
+  position: relative;
+  z-index: 10;
+}
+
+.reaction-dock-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.reaction-dock-pill.cooling-down {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+
+.reaction-dock-btn {
+  background: none;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+  outline: none;
+}
+
+.reaction-dock-btn:hover:not(:disabled) {
+  transform: scale(1.22);
+  background-color: rgba(255, 90, 95, 0.1);
+}
+
+.reaction-dock-btn:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.reaction-dock-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.reaction-emoji {
+  font-size: 1.3rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.reaction-cooldown-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+

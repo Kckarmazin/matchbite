@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRoom } from '../../context/RoomContext.jsx';
 import { AVATAR_OPTIONS } from '../../utils/session.js';
-import { LogIn } from 'lucide-react';
+import { LogIn, Zap } from 'lucide-react';
 
 export function JoinRoom({ initialCode = '', onSwitchToCreate }) {
   const { participant, joinRoom, isLoading } = useRoom();
@@ -15,6 +15,19 @@ export function JoinRoom({ initialCode = '', onSwitchToCreate }) {
       setCode(initialCode.toUpperCase());
     }
   }, [initialCode]);
+
+  const effectiveCode = (code || initialCode || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('room') : '') || '').trim().toUpperCase();
+  const existingName = (participant?.name || '').trim();
+  const existingAvatar = participant?.avatar || avatar || '🍻';
+  const hasExpressOption = Boolean(existingName && effectiveCode);
+
+  const handleExpressJoin = async () => {
+    if (!effectiveCode || !existingName) return;
+    await joinRoom(effectiveCode, {
+      name: existingName,
+      avatar: existingAvatar,
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,6 +46,52 @@ export function JoinRoom({ initialCode = '', onSwitchToCreate }) {
       <p className="card-subtitle">
         Enter the room code shared by your group to start swiping together.
       </p>
+
+      {/* 1-Tap Express Join for Returning Users */}
+      {hasExpressOption && (
+        <div
+          className="express-join-card"
+          style={{
+            marginBottom: '20px',
+            padding: '16px',
+            background: 'linear-gradient(135deg, rgba(255,241,242,0.9), rgba(255,255,255,0.95))',
+            borderRadius: 'var(--radius-md)',
+            border: '1.5px solid #FECDD3',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.5rem' }}>{existingAvatar}</span>
+              <div>
+                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', display: 'block' }}>
+                  Fast Express Join
+                </span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Room <strong>{effectiveCode}</strong> detected
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary express-join-btn"
+            style={{ width: '100%', padding: '14px', fontSize: '1rem', fontWeight: 800 }}
+            onClick={handleExpressJoin}
+            disabled={isLoading}
+          >
+            <Zap size={18} fill="currentColor" />
+            <span>⚡ Join Room as {existingName}</span>
+          </button>
+
+          <div style={{ textAlign: 'center', marginTop: '10px' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Or update your nickname and avatar below:
+            </span>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
