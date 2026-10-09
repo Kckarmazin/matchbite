@@ -539,7 +539,16 @@ out center ${queryLimit};`;
       const imageUrl = this.getImageForVenue(name, cuisine, category);
 
       // Extract rich OpenStreetMap metadata
-      const website = node.tags.website || node.tags['contact:website'] || node.tags.url || null;
+      const rawWebsite = node.tags.website || node.tags['contact:website'] || node.tags.url || null;
+      let website = null;
+      if (rawWebsite && typeof rawWebsite === 'string') {
+        const trimmed = rawWebsite.trim();
+        if (trimmed) {
+          website = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+        }
+      }
+      const searchWebsite = `https://www.google.com/search?q=${encodeURIComponent(name + ' ' + address)}`;
+      const finalWebsite = website || searchWebsite;
       const phone = node.tags.phone || node.tags['contact:phone'] || null;
       const openingHours = node.tags.opening_hours || null;
       const outdoorSeating = node.tags.outdoor_seating === 'yes';
@@ -550,7 +559,7 @@ out center ${queryLimit};`;
       const wifi = node.tags.internet_access === 'wlan' || node.tags.internet_access === 'yes' || node.tags.internet_access === 'free';
 
       // Dynamic rich feature tags
-      const tags = [cuisine, `${distanceNum.toFixed(1)} mi`];
+      const tags = [cuisine];
       if (outdoorSeating) tags.push('☀️ Patio');
       if (takeaway) tags.push('🥡 Takeout');
       if (delivery) tags.push('🛵 Delivery');
@@ -565,14 +574,19 @@ out center ${queryLimit};`;
         tags.push(atmosphereTags[hash % atmosphereTags.length]);
       }
 
-      // Dynamic contextual description
+      // Dynamic contextual description and curated highlights
       const descPrefixes = ['Beloved neighborhood', 'Vibrant local', 'Highly rated', 'Cozy community', 'Charming neighborhood'];
       const prefix = descPrefixes[hash % descPrefixes.length];
       const highlights = [];
-      if (outdoorSeating) highlights.push('outdoor patio seating');
-      if (takeaway || delivery) highlights.push('takeout & delivery options');
-      if (brewery) highlights.push('house craft beverages');
-      if (wifi) highlights.push('Wi-Fi access');
+      if (outdoorSeating) highlights.push('Outdoor Patio Seating');
+      if (takeaway || delivery) highlights.push('Takeout & Delivery Options');
+      if (brewery) highlights.push('Craft Beverages & Brews');
+      if (wifi) highlights.push('Free Wi-Fi Access');
+      if (vegetarian) highlights.push('Vegetarian-Friendly');
+      if (website) highlights.push('🌐 Website');
+      if (highlights.length === 0) {
+        highlights.push('Top Rated Local Spot', 'Welcoming Atmosphere', 'Popular with Groups');
+      }
       const highlightSentence = highlights.length > 0 
         ? ` Highlights include ${highlights.join(' and ')}.` 
         : ' Serving signature local favorites in a welcoming atmosphere.';
@@ -592,8 +606,9 @@ out center ${queryLimit};`;
         lat: nodeLat,
         lng: nodeLon,
         tags,
+        highlights,
         description,
-        websiteUrl: website,
+        websiteUrl: finalWebsite,
         phone,
         openHours: openingHours || 'Open Daily • Check website or call for hours',
         isPromoted: idx === 0,
@@ -604,7 +619,7 @@ out center ${queryLimit};`;
           reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=osm-${node.id}`,
           deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=osm-${node.id}`,
           menuUrl: website || `https://www.google.com/search?q=${encodeURIComponent(name + ' menu ' + address)}`,
-          websiteUrl: website,
+          websiteUrl: finalWebsite,
         },
       };
     });
@@ -774,6 +789,8 @@ out center ${queryLimit};`;
             imageUrl = this.getImageForVenue(name, cuisine, category);
           }
 
+          const googleWebsite = `https://www.google.com/search?q=${encodeURIComponent(name + ' ' + address)}`;
+
           return {
             id: `google-${place.id}`,
             name,
@@ -788,7 +805,9 @@ out center ${queryLimit};`;
             lat: placeLat,
             lng: placeLng,
             tags: [cuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
+            highlights: ['Google Verified', 'Highly Rated', 'Popular Destination'],
             description: `Highly-rated ${cuisine} venue (${rating}★, ${reviewCount} reviews).`,
+            websiteUrl: googleWebsite,
             isPromoted: idx === 0,
             sponsorBadge: idx === 0 ? 'Featured' : null,
             sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
@@ -796,6 +815,8 @@ out center ${queryLimit};`;
               directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
               reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=google-${place.id}`,
               deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=google-${place.id}`,
+              websiteUrl: googleWebsite,
+              menuUrl: `https://www.google.com/search?q=${encodeURIComponent(name + ' menu ' + address)}`,
             },
           };
         });
@@ -871,6 +892,8 @@ out center ${queryLimit};`;
             imageUrl = this.getImageForVenue(name, formattedCuisine, category);
           }
 
+          const googleWebsite = `https://www.google.com/search?q=${encodeURIComponent(name + ' ' + address)}`;
+
           return {
             id: `gplace-${place.place_id}`,
             name,
@@ -885,7 +908,9 @@ out center ${queryLimit};`;
             lat: placeLat,
             lng: placeLng,
             tags: [formattedCuisine, `${distanceNum.toFixed(1)} mi`, 'Google Verified'],
+            highlights: ['Google Verified', 'Highly Rated', 'Popular Destination'],
             description: `Local ${formattedCuisine} venue (${rating}★, ${reviewCount} reviews).`,
+            websiteUrl: googleWebsite,
             isPromoted: idx === 0,
             sponsorBadge: idx === 0 ? 'Featured' : null,
             sponsorPerk: idx === 0 ? 'Free appetizer with table reservation' : null,
@@ -893,6 +918,8 @@ out center ${queryLimit};`;
               directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(name + ' ' + address)}`,
               reservationUrl: `/api/affiliate/redirect?partner=opentable&venueId=gplace-${place.place_id}`,
               deliveryUrl: `/api/affiliate/redirect?partner=doordash&venueId=gplace-${place.place_id}`,
+              websiteUrl: googleWebsite,
+              menuUrl: `https://www.google.com/search?q=${encodeURIComponent(name + ' menu ' + address)}`,
             },
           };
         });
@@ -1165,12 +1192,19 @@ out center ${queryLimit};`;
         distStr = `${distMiles.toFixed(1)} mi`;
       }
       const address = settings.locationName ? `${v.address}, ${settings.locationName}` : v.address;
+      const rawWeb = v.websiteUrl || v.affiliateLinks?.websiteUrl || v.affiliateLinks?.menuUrl;
+      const seedWebsite = rawWeb
+        ? (/^https?:\/\//i.test(rawWeb.trim()) ? rawWeb.trim() : `https://${rawWeb.trim()}`)
+        : `https://www.google.com/search?q=${encodeURIComponent(v.name + ' ' + address)}`;
       return {
         ...v,
         distance: distStr,
+        websiteUrl: seedWebsite,
+        highlights: v.highlights || (v.tags && v.tags.length > 0 ? v.tags : ['Top Rated', 'Popular with Groups', 'Great Ambience']),
         affiliateLinks: {
           ...v.affiliateLinks,
           directionsUrl: `https://maps.google.com/?q=${encodeURIComponent(v.name + ' ' + address)}`,
+          websiteUrl: seedWebsite,
         },
       };
     });

@@ -483,10 +483,20 @@ export class RoomStore {
 
     const localizedVenues = allVenues.map(v => {
       const miles = getMiles(v);
+      const rawWeb = v.websiteUrl || v.affiliateLinks?.websiteUrl || v.affiliateLinks?.menuUrl;
+      const seedWebsite = rawWeb
+        ? (/^https?:\/\//i.test(rawWeb.trim()) ? rawWeb.trim() : `https://${rawWeb.trim()}`)
+        : `https://www.google.com/search?q=${encodeURIComponent(`${v.name} ${v.address || ''}`.trim())}`;
       return {
         ...v,
         distance: `${miles.toFixed(1)} mi`,
         distanceNum: miles,
+        websiteUrl: seedWebsite,
+        highlights: v.highlights || (v.tags && v.tags.length > 0 ? v.tags : ['Top Rated', 'Popular with Groups', 'Great Ambience']),
+        affiliateLinks: {
+          ...v.affiliateLinks,
+          websiteUrl: seedWebsite,
+        },
       };
     });
 

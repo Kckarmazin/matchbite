@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Navigation, ShoppingBag, ExternalLink } from 'lucide-react';
+import { Calendar, Navigation, ShoppingBag, ExternalLink, Globe } from 'lucide-react';
 
 export function AffiliateActions({ venue, partner = null }) {
   if (!venue) return null;
@@ -30,6 +30,12 @@ export function AffiliateActions({ venue, partner = null }) {
   const directionsHref = getActionUrl(links.directionsUrl, 'directions', 'googlemaps');
   const deliveryHref = getActionUrl(links.deliveryUrl, 'delivery', 'doordash');
   const menuHref = getActionUrl(links.menuUrl, 'menu', 'direct');
+
+  const rawWeb = venue.websiteUrl || links.websiteUrl || links.menuUrl;
+  const webTarget = rawWeb
+    ? (/^https?:\/\//i.test(rawWeb.trim()) ? rawWeb.trim() : `https://${rawWeb.trim()}`)
+    : `https://www.google.com/search?q=${encodeURIComponent(`${venue.name} ${venue.address || ''}`.trim())}`;
+  const websiteHref = getActionUrl(webTarget, 'website', 'direct');
 
   return (
     <div className="affiliate-actions-grid">
@@ -74,6 +80,16 @@ export function AffiliateActions({ venue, partner = null }) {
           <span>View Menu</span>
         </a>
       )}
+
+      <a
+        href={websiteHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="affiliate-btn btn-website"
+      >
+        <Globe size={18} />
+        <span>Official Website</span>
+      </a>
     </div>
   );
 }

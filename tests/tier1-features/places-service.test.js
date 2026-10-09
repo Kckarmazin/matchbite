@@ -220,8 +220,36 @@ describe('PlacesService: Zero API Key Real Venue Data Pipeline', () => {
         expect(venue.affiliateLinks.directionsUrl).toContain('maps.google.com');
         expect(venue.affiliateLinks.reservationUrl).toContain('opentable');
         expect(venue.affiliateLinks.deliveryUrl).toContain('doordash');
+        expect(venue.websiteUrl).toBeDefined();
+        expect(venue.websiteUrl).toMatch(/^https?:\/\//);
       } finally {
         globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('guarantees valid websiteUrl with https:// scheme on all seed catalog venues', () => {
+      const venues = placesService.getCachedOrSeedVenues({ deckSize: 15 });
+      expect(venues.length).toBeGreaterThan(0);
+      for (const v of venues) {
+        expect(v.websiteUrl).toBeDefined();
+        expect(typeof v.websiteUrl).toBe('string');
+        expect(v.websiteUrl).toMatch(/^https?:\/\//);
+      }
+    });
+
+    it('guarantees valid websiteUrl and highlights in room deck generation', () => {
+      roomStore.createRoom({
+        hostName: 'HostUser',
+        locationName: 'Austin, TX',
+      });
+      const room = Array.from(roomStore.rooms.values())[0];
+      roomStore.startVoting(room.code, { hostKey: room.hostKey });
+      const updated = roomStore.getRoom(room.code);
+      expect(updated.deck.length).toBeGreaterThan(0);
+      for (const v of updated.deck) {
+        expect(v.websiteUrl).toBeDefined();
+        expect(v.websiteUrl).toMatch(/^https?:\/\//);
+        expect(Array.isArray(v.highlights)).toBe(true);
       }
     });
   });

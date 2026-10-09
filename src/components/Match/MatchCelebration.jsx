@@ -14,6 +14,7 @@ import {
   Share2,
   RotateCcw,
   CheckCircle,
+  Globe,
 } from 'lucide-react';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
@@ -201,6 +202,11 @@ export function MatchCelebration({
   const priceDisplay = '$'.repeat(venue.priceTier || 2);
   const affiliate = venue.affiliateLinks || {};
 
+  const rawWebsite = venue.websiteUrl || affiliate.websiteUrl || affiliate.menuUrl;
+  const websiteUrl = rawWebsite
+    ? (/^https?:\/\//i.test(rawWebsite.trim()) ? rawWebsite.trim() : `https://${rawWebsite.trim()}`)
+    : `https://www.google.com/search?q=${encodeURIComponent(`${venue.name} ${venue.address || ''}`.trim())}`;
+
   return (
     <div className="match-celebration-container">
       {/* Victory Header */}
@@ -332,6 +338,18 @@ export function MatchCelebration({
               >
                 <ExternalLink size={18} />
                 <span>View Menu</span>
+              </a>
+            )}
+
+            {websiteUrl && (
+              <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="affiliate-btn btn-website"
+              >
+                <Globe size={18} />
+                <span>Visit Website</span>
               </a>
             )}
           </div>

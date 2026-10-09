@@ -1143,6 +1143,19 @@ body {
   background: #E2E8F0;
 }
 
+.btn-website {
+  background: var(--surface-muted);
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+.btn-website:hover {
+  background: #FFF;
+  border-color: var(--primary);
+  color: var(--primary-hover);
+  box-shadow: 0 2px 8px rgba(255, 90, 95, 0.2);
+}
+
 .match-footer-controls {
   display: flex;
   width: 100%;
@@ -1213,6 +1226,9 @@ body {
   align-items: flex-end;
   justify-content: center;
   animation: fadeInOverlay 0.2s ease-out;
+  touch-action: auto;
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 @keyframes fadeInOverlay {
@@ -1232,6 +1248,9 @@ body {
   flex-direction: column;
   animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  touch-action: auto;
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 @keyframes slideUpSheet {
@@ -1323,16 +1342,25 @@ body {
 .sheet-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+  gap: 6px;
   color: var(--primary);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .sheet-link:hover {
-  text-decoration: underline;
+  background: #FFF;
+  border-color: var(--primary);
+  color: var(--primary-hover);
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(255, 90, 95, 0.2);
 }
 
 .sheet-highlights-grid {
@@ -1353,6 +1381,31 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-main);
+}
+
+.sheet-highlight-pill-clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sheet-highlight-pill-clickable:hover {
+  background: #FFF;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(255, 90, 95, 0.2);
+  transform: translateY(-1px);
+}
+
+.venue-tag-clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.venue-tag-clickable:hover {
+  background: #FFF;
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 2px 6px rgba(255, 90, 95, 0.2);
+  transform: translateY(-1px);
 }
 
 .sheet-footer {

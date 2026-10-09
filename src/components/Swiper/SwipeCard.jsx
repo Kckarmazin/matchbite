@@ -162,6 +162,22 @@ export function SwipeCard({
   const zIndex = Math.max(1, 30 - index * 10);
   const priceDisplay = '$'.repeat(venue.priceTier || 2);
 
+  // Safely resolve reliable website URL (with scheme) or Google search fallback so Website always works
+  const rawWebsite = venue.websiteUrl || venue.affiliateLinks?.websiteUrl || venue.affiliateLinks?.menuUrl;
+  const websiteUrl = rawWebsite
+    ? (/^https?:\/\//i.test(rawWebsite.trim()) ? rawWebsite.trim() : `https://${rawWebsite.trim()}`)
+    : `https://www.google.com/search?q=${encodeURIComponent(`${venue.name} ${venue.address || ''}`.trim())}`;
+
+  const handleOpenWebsite = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (typeof window !== 'undefined' && websiteUrl) {
+      window.open(websiteUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div
       ref={cardRef}
@@ -257,11 +273,37 @@ export function SwipeCard({
         <p className="venue-desc">{venue.description}</p>
 
         <div className="venue-tags">
-          {(venue.tags || []).map((tag) => (
-            <span key={tag} className="venue-tag">
-              {tag}
-            </span>
-          ))}
+          {(venue.tags || []).map((tag) => {
+            const isWeb = typeof tag === 'string' && (tag.toLowerCase().includes('website') || tag.includes('🌐'));
+            if (isWeb) {
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className="venue-tag venue-tag-clickable"
+                  onClick={handleOpenWebsite}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  style={{
+                    cursor: 'pointer',
+                    background: 'rgba(255, 75, 110, 0.1)',
+                    color: 'var(--primary)',
+                    borderColor: 'var(--primary)',
+                    fontWeight: 700,
+                  }}
+                  title="Visit venue website"
+                >
+                  <Globe size={12} />
+                  <span>{tag.replace(/^🌐\s*/, '')}</span>
+                  <ExternalLink size={10} />
+                </button>
+              );
+            }
+            return (
+              <span key={tag} className="venue-tag">
+                {tag}
+              </span>
+            );
+          })}
         </div>
       </div>
 
@@ -269,6 +311,7 @@ export function SwipeCard({
       {showDetails && (
         <div
           className="venue-details-overlay"
+          style={{ touchAction: 'auto', userSelect: 'auto', WebkitUserSelect: 'auto' }}
           onClick={(e) => {
             e.stopPropagation();
             setShowDetails(false);
@@ -282,6 +325,7 @@ export function SwipeCard({
         >
           <div
             className="venue-details-sheet"
+            style={{ touchAction: 'auto', userSelect: 'auto', WebkitUserSelect: 'auto' }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onPointerMove={(e) => e.stopPropagation()}
@@ -317,7 +361,7 @@ export function SwipeCard({
             </div>
 
             <div className="sheet-content">
-              {/* Full Address */}
+              {/* Full Address & Direct Actions */}
               <div className="sheet-section">
                 <h4 className="sheet-section-title">
                   <MapPin size={15} color="var(--primary)" /> Address & Location
@@ -326,34 +370,39 @@ export function SwipeCard({
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Distance: {venue.distance} away
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '8px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
                   {venue.affiliateLinks?.directionsUrl && (
                     <a
                       href={venue.affiliateLinks.directionsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="sheet-link"
+                      onClick={(e) => e.stopPropagation()}
                     >
+                      <MapPin size={13} style={{ marginRight: '2px' }} />
                       <span>Get Directions</span>
                       <ExternalLink size={12} />
                     </a>
                   )}
-                  {venue.websiteUrl && (
-                    <a
-                      href={venue.websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="sheet-link"
-                    >
-                      <Globe size={13} style={{ marginRight: '2px' }} />
-                      <span>Official Website</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
+                  <a
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sheet-link"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    title="Visit official website or search page"
+                  >
+                    <Globe size={13} style={{ marginRight: '2px' }} />
+                    <span>Website</span>
+                    <ExternalLink size={12} />
+                  </a>
                   {venue.phone && (
                     <a
                       href={`tel:${venue.phone.replace(/[^0-9+]/g, '')}`}
                       className="sheet-link"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Phone size={13} style={{ marginRight: '2px' }} />
                       <span>{venue.phone}</span>
@@ -378,12 +427,38 @@ export function SwipeCard({
                   <Sparkles size={15} color="#F59E0B" /> Highlights & Atmosphere
                 </h4>
                 <div className="sheet-highlights-grid">
-                  {(venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience']).map((hl) => (
-                    <div key={hl} className="sheet-highlight-pill">
-                      <CheckCircle size={13} color="var(--success)" />
-                      <span>{hl}</span>
-                    </div>
-                  ))}
+                  {(venue.highlights || venue.tags || ['Top Rated', 'Popular with Groups', 'Great Ambience']).map((hl) => {
+                    const isWeb = typeof hl === 'string' && (hl.toLowerCase().includes('website') || hl.includes('🌐'));
+                    if (isWeb) {
+                      return (
+                        <a
+                          key={hl}
+                          href={websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="sheet-highlight-pill sheet-highlight-pill-clickable"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            color: 'var(--primary)',
+                            borderColor: 'var(--primary)',
+                          }}
+                          title="Visit venue website"
+                        >
+                          <Globe size={13} color="var(--primary)" />
+                          <span style={{ fontWeight: 700 }}>{hl.replace(/^🌐\s*/, '')}</span>
+                          <ExternalLink size={11} color="var(--primary)" style={{ marginLeft: 'auto' }} />
+                        </a>
+                      );
+                    }
+                    return (
+                      <div key={hl} className="sheet-highlight-pill">
+                        <CheckCircle size={13} color="var(--success)" />
+                        <span>{hl}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -403,11 +478,38 @@ export function SwipeCard({
                   <Utensils size={15} color="var(--primary)" /> Cuisine & Vibe Tags
                 </h4>
                 <div className="venue-tags" style={{ marginTop: '6px' }}>
-                  {(venue.tags || []).map((t) => (
-                    <span key={t} className="venue-tag">
-                      {t}
-                    </span>
-                  ))}
+                  {(venue.tags || []).map((t) => {
+                    const isWeb = typeof t === 'string' && (t.toLowerCase().includes('website') || t.includes('🌐'));
+                    if (isWeb) {
+                      return (
+                        <a
+                          key={t}
+                          href={websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="venue-tag venue-tag-clickable"
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            color: 'var(--primary)',
+                            borderColor: 'var(--primary)',
+                            fontWeight: 700,
+                          }}
+                          title="Visit venue website"
+                        >
+                          <Globe size={12} />
+                          <span>{t.replace(/^🌐\s*/, '')}</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      );
+                    }
+                    return (
+                      <span key={t} className="venue-tag">
+                        {t}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>
